@@ -12,6 +12,30 @@ function goApp() {
   window.location.href = '/app/';
 }
 
+function hasInviteParams() {
+  const url = new URL(window.location.href);
+  const keys = [
+    'token',
+    'invite',
+    'confirmation',
+    'confirmation_token',
+    'invite_token',
+    'recovery_token',
+  ];
+
+  if (keys.some((key) => url.searchParams.has(key))) {
+    return true;
+  }
+
+  const hash = url.hash.replace(/^#/, '');
+  if (!hash) {
+    return false;
+  }
+
+  const hashParams = new URLSearchParams(hash);
+  return keys.some((key) => hashParams.has(key));
+}
+
 btnLogin.addEventListener('click', () => {
   if (!window.netlifyIdentity) return;
   window.netlifyIdentity.open();
@@ -20,6 +44,8 @@ btnLogin.addEventListener('click', () => {
 btnGoApp.addEventListener('click', goApp);
 
 if (window.netlifyIdentity) {
+  const shouldOpenSignup = hasInviteParams();
+
   window.netlifyIdentity.on('login', () => {
     window.netlifyIdentity.close();
     goApp();
@@ -35,6 +61,11 @@ if (window.netlifyIdentity) {
       btnGoApp.style.display = '';
     } else {
       setStatus('non autenticato');
+      if (shouldOpenSignup) {
+        setTimeout(() => {
+          window.netlifyIdentity.open('signup');
+        }, 150);
+      }
     }
   });
   window.netlifyIdentity.init();
