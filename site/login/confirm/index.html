@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TERMO 3.0 · Conferma accesso</title>
   <link rel="stylesheet" href="/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/config.js"></script>
-  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+  <script src="/assets/supabase-client.js"></script>
 </head>
 <body>
   <main style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
@@ -16,16 +17,16 @@
   </main>
 
   <script>
-    if (window.netlifyIdentity) {
-      window.netlifyIdentity.on('init', (user) => {
-        if (user) {
-          window.location.href = '/dashboard/';
-          return;
-        }
-        window.netlifyIdentity.open('signup');
-      });
-      window.netlifyIdentity.init();
+    async function resolveLogin() {
+      const session = await window.TERMO_SUPABASE.getSession();
+      if (session) {
+        window.location.href = '/app/';
+      } else {
+        window.location.href = '/login/';
+      }
     }
+
+    resolveLogin();
   </script>
 </body>
 </html>

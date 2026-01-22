@@ -5,8 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TERMO 3.0 · Login</title>
   <link rel="stylesheet" href="/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/config.js"></script>
-  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+  <script src="/assets/supabase-client.js"></script>
   <script defer src="/login/login.js"></script>
 </head>
 <body>
@@ -36,13 +37,23 @@
 
       <section class="auth">
         <div class="topline">
-          <div class="chip">Netlify Identity</div>
+          <div class="chip">Supabase Auth</div>
           <div class="chip" id="envChip">Production</div>
         </div>
         <h2>Accesso area riservata</h2>
         <p>Autenticati per continuare. Se sei già loggato, verrai reindirizzato automaticamente.</p>
 
-        <button class="btn" id="btnLogin">Accedi / Registrati</button>
+        <form class="stack" id="loginForm" autocomplete="on">
+          <label>
+            <span>Email</span>
+            <input type="email" id="email" name="email" placeholder="nome@azienda.it" required />
+          </label>
+          <label>
+            <span>Password</span>
+            <input type="password" id="password" name="password" placeholder="••••••••" required />
+          </label>
+          <button class="btn" id="btnLogin" type="submit">Accedi</button>
+        </form>
         <button class="btn secondary" id="btnGoApp" style="display:none;">Vai alla piattaforma</button>
 
         <div class="status" id="status">

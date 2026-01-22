@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TERMO 3.0 · Piattaforma</title>
   <link rel="stylesheet" href="/style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="/config.js"></script>
+  <script src="/assets/supabase-client.js"></script>
   <script defer src="/auth-guard.js"></script>
-  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
 </head>
 <body class="app-shell">
   <header class="app-header">
@@ -28,8 +29,8 @@
   </main>
 
   <script>
-    document.getElementById('logoutBtn').addEventListener('click', () => {
-      if (window.netlifyIdentity) window.netlifyIdentity.logout();
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      await window.TERMO_SUPABASE.signOut();
       window.location.href = '/login/';
     });
   </script>
