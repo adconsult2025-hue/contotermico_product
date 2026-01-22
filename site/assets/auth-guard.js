@@ -1,4 +1,11 @@
 (function () {
+  const supabaseUrl = window.__TERMO_SUPABASE_URL;
+  const supabaseAnonKey = window.__TERMO_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.warn('Supabase config missing: update /config.js');
+  }
+
   const LOGIN_PATH = '/login/';
   const HOME_AFTER_LOGIN = '/dashboard/';
 

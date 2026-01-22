@@ -1,5 +1,11 @@
 // Guard minimale: se non sei loggato -> /login/
 // NB: qui NON facciamo più gate lato function (lo reinseriremo dopo, stabile).
+const supabaseUrl = window.__TERMO_SUPABASE_URL;
+const supabaseAnonKey = window.__TERMO_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn('Supabase config missing: update /config.js');
+}
 
 async function ensureIdentityWidget() {
   if (window.netlifyIdentity) return true;

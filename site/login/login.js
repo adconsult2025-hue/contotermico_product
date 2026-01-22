@@ -2,6 +2,12 @@ const statusEl = document.getElementById('status');
 const whoEl = document.getElementById('who');
 const btnLogin = document.getElementById('btnLogin');
 const btnGoApp = document.getElementById('btnGoApp');
+const supabaseUrl = window.__TERMO_SUPABASE_URL;
+const supabaseAnonKey = window.__TERMO_SUPABASE_ANON_KEY;
+
+if (!supabaseUrl || !supabaseAnonKey) {
+  console.warn('Supabase config missing: update /config.js');
+}
 
 function setStatus(text, isErr = false) {
   statusEl.classList.toggle('error', Boolean(isErr));
