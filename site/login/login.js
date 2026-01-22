@@ -11,7 +11,16 @@ function setStatus(text, isErr = false) {
 }
 
 function goApp() {
-  window.location.href = '/app/';
+  window.location.href = '/dashboard/';
+}
+
+async function resolveSession() {
+  if (!window.getSession) return null;
+  const { data, error } = await window.getSession();
+  if (error) {
+    console.warn('Supabase session error', error);
+  }
+  return data?.session || null;
 }
 
 btnGoApp.addEventListener('click', goApp);
