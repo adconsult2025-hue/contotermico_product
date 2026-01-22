@@ -1,23 +1,55 @@
 <!doctype html>
 <html lang="it">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TERMO 3.0 · Login</title>
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/style.css" />
   <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
-  <script defer src="/assets/auth-guard.js"></script>
   <script defer src="/login/login.js"></script>
 </head>
 <body>
-  <main class="login-shell">
-    <section class="login-card">
-      <img src="/IMG/termo-3.0.png" class="login-logo" alt="TERMO 3.0">
-      <h1>TERMO 3.0</h1>
-      <p class="muted">Accesso riservato</p>
-      <button id="btn-login" class="btn btn-primary">Accedi / Registrati</button>
-      <div id="msg" class="login-message" aria-live="polite"></div>
-    </section>
-  </main>
+  <div class="page">
+    <div class="card">
+      <section class="brand">
+        <div>
+          <div class="brand-top">
+            <div class="brand-logo" aria-hidden="true">
+              <img src="/IMG/termo-3.0.png" alt="TERMO 3.0" />
+            </div>
+            <div class="brand-name">
+              <h1>TERMO 3.0</h1>
+              <p>Piattaforma operativa per Conto Termico 3.0</p>
+            </div>
+          </div>
+          <ul class="brand-bullets">
+            <li><span class="dot"></span><span>Workflow pratiche: anagrafiche, unità, check, documenti.</span></li>
+            <li><span class="dot orange"></span><span>Filiera: installatori, tecnici, forniture e tracking.</span></li>
+            <li><span class="dot green"></span><span>Marketing & lead: ingresso privati e micro-imprese.</span></li>
+          </ul>
+        </div>
+        <div class="mini">
+          © 2026 — TERMO 3.0 · All rights reserved.
+        </div>
+      </section>
+
+      <section class="auth">
+        <div class="topline">
+          <div class="chip">Netlify Identity</div>
+          <div class="chip" id="envChip">Production</div>
+        </div>
+        <h2>Accesso area riservata</h2>
+        <p>Autenticati per continuare. Se sei già loggato, verrai reindirizzato automaticamente.</p>
+
+        <button class="btn" id="btnLogin">Accedi / Registrati</button>
+        <button class="btn secondary" id="btnGoApp" style="display:none;">Vai alla piattaforma</button>
+
+        <div class="status" id="status">
+          <span>Stato: <strong>in attesa</strong></span>
+          <span id="who"></span>
+        </div>
+      </section>
+    </div>
+  </div>
 </body>
 </html>

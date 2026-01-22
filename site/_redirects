@@ -1,1 +1,6 @@
+/  /login/  302
 /login  /login/  301
+
+# SPA-like convenience (opzionale)
+/app/*  /app/index.html  200
+/dashboard/*  /app/  302

@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TERMO 3.0 · Piattaforma</title>
+  <link rel="stylesheet" href="/style.css" />
+  <script defer src="/auth-guard.js"></script>
+  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+</head>
+<body class="app-shell">
+  <header class="app-header">
+    <div class="left">
+      <img src="/IMG/termo-3.0.png" alt="TERMO 3.0" />
+      <div class="title">
+        <b>TERMO 3.0</b>
+        <span>Area riservata · Home</span>
+      </div>
+    </div>
+    <button class="btn secondary" id="logoutBtn" style="width:auto; padding:10px 12px;">Logout</button>
+  </header>
+
+  <main class="app-main">
+    <p style="margin:0;color:var(--muted);">
+      Placeholder home. Qui agganciamo il workflow CT 3.0 (condominio / pratiche / documenti).
+    </p>
+  </main>
+
+  <script>
+    document.getElementById('logoutBtn').addEventListener('click', () => {
+      if (window.netlifyIdentity) window.netlifyIdentity.logout();
+      window.location.href = '/login/';
+    });
+  </script>
+</body>
+</html>
