@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TERMO 3.0 · Dashboard</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
+  <script defer src="/assets/auth-guard.js"></script>
+  <script defer src="/dashboard/dashboard.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="logo">
+        <img src="/IMG/termo-3.0.png" alt="TERMO 3.0">
+        <div>
+          <strong>TERMO 3.0</strong>
+          <div class="muted small">Dashboard</div>
+        </div>
+      </div>
+      <nav class="menu">
+        <a href="#">Panoramica</a>
+        <a href="#">Pratiche</a>
+        <a href="#">Documenti</a>
+        <a href="#">Impostazioni</a>
+      </nav>
+    </aside>
+    <main class="main-area">
+      <header class="topbar">
+        <div>
+          <div class="muted small">Bentornato</div>
+          <div id="who"></div>
+        </div>
+        <button id="logout" class="btn">Logout</button>
+      </header>
+      <section class="container">
+        <h1>Dashboard</h1>
+        <p class="muted">Area riservata per la gestione Conto Termico 3.0.</p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
