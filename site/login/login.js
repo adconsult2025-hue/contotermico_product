@@ -29,7 +29,7 @@ loginForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   setStatus('accesso in corso...');
 
-  if (!window.termoSupabase) {
+  if (!window.TERMO_SUPABASE) {
     setStatus('supabase non disponibile', true);
     return;
   }
@@ -42,38 +42,15 @@ loginForm.addEventListener('submit', async (event) => {
     return;
   }
 
-  const { error } = await window.termoSupabase.auth.signInWithPassword({ email, password });
+  const { error } = await window.TERMO_SUPABASE.signIn(email, password);
 
   if (error) {
-    setStatus('errore autenticazione', true);
-    whoEl.textContent = error.message || '';
+    setStatus(error.message || 'errore autenticazione', true);
+    whoEl.textContent = '';
     return;
   }
 
   setStatus('autenticato');
   whoEl.textContent = email;
   goApp();
-});
-
-window.onAuthStateChange?.((_event, session) => {
-  if (session?.user) {
-    whoEl.textContent = session.user.email || '';
-    setStatus('autenticato');
-    btnGoApp.style.display = '';
-  } else {
-    setStatus('non autenticato');
-    whoEl.textContent = '';
-    btnGoApp.style.display = 'none';
-  }
-});
-
-resolveSession().then((session) => {
-  if (session?.user) {
-    whoEl.textContent = session.user.email || '';
-    setStatus('autenticato');
-    btnGoApp.style.display = '';
-    goApp();
-  } else {
-    setStatus('non autenticato');
-  }
 });

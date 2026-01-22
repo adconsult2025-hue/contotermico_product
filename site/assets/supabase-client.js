@@ -1,16 +1,19 @@
-const supabaseUrl = window.__TERMO_SUPABASE_URL;
-const supabaseAnonKey = window.__TERMO_SUPABASE_ANON_KEY;
+const supabase = window.supabase.createClient(
+  window.__TERMO_SUPABASE_URL,
+  window.__TERMO_SUPABASE_ANON_KEY
+);
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Supabase config missing: update /config.js');
+async function getSession() {
+  const { data } = await supabase.auth.getSession();
+  return data.session;
 }
 
-if (!window.supabase?.createClient) {
-  console.warn('Supabase JS not loaded: include the CDN script.');
+async function signIn(email, password) {
+  return supabase.auth.signInWithPassword({ email, password });
 }
 
-window.termoSupabase = window.supabase?.createClient?.(supabaseUrl, supabaseAnonKey);
+async function signOut() {
+  return supabase.auth.signOut();
+}
 
-window.getSession = () => window.termoSupabase?.auth.getSession();
-window.onAuthStateChange = (callback) => window.termoSupabase?.auth.onAuthStateChange(callback);
-window.signOut = () => window.termoSupabase?.auth.signOut();
+window.TERMO_SUPABASE = { supabase, getSession, signIn, signOut };
