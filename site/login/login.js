@@ -15,12 +15,11 @@ function goApp() {
 function hasInviteParams() {
   const url = new URL(window.location.href);
   const keys = [
-    'token',
     'invite',
     'confirmation',
-    'confirmation_token',
-    'invite_token',
-    'recovery_token',
+    'recovery',
+    'token',
+    'access_token',
   ];
 
   if (keys.some((key) => url.searchParams.has(key))) {
@@ -61,11 +60,11 @@ if (window.netlifyIdentity) {
       btnGoApp.style.display = '';
     } else {
       setStatus('non autenticato');
-      if (shouldOpenSignup) {
-        setTimeout(() => {
-          window.netlifyIdentity.open('signup');
-        }, 150);
-      }
+    }
+    if (shouldOpenSignup) {
+      setTimeout(() => {
+        window.netlifyIdentity.open('signup');
+      }, 150);
     }
   });
   window.netlifyIdentity.init();
