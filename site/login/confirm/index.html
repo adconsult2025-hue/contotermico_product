@@ -3,46 +3,27 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TERMO 3.0 · Attivazione accesso</title>
+  <title>TERMO 3.0 · Conferma accesso</title>
   <link rel="stylesheet" href="/style.css" />
   <script src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
 </head>
 <body>
   <main style="min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;">
     <div style="max-width:520px;width:100%;text-align:center;">
-      <h1 style="margin:0 0 12px;">Attivazione account</h1>
-      <p style="opacity:.8;margin:0 0 18px;">
-        Completa l’accesso impostando la password.
-      </p>
-      <button id="open" class="btn-primary" style="padding:12px 18px;border-radius:12px;">
-        Continua
-      </button>
+      <p style="margin:0;font-size:1.1rem;opacity:0.8;">Conferma accesso…</p>
     </div>
   </main>
 
   <script>
-    function hasToken() {
-      const h = window.location.hash || '';
-      return (
-        h.includes('invite_token=') ||
-        h.includes('recovery_token=') ||
-        h.includes('confirmation_token=')
-      );
-    }
-
-    function openWidget() {
-      if (window.netlifyIdentity) {
-        window.netlifyIdentity.open();
-      }
-    }
-
-    document.getElementById('open').addEventListener('click', openWidget);
-
     if (window.netlifyIdentity) {
+      window.netlifyIdentity.on('init', (user) => {
+        if (user) {
+          window.location.href = '/dashboard/';
+          return;
+        }
+        window.netlifyIdentity.open('signup');
+      });
       window.netlifyIdentity.init();
-      if (hasToken()) {
-        setTimeout(openWidget, 150);
-      }
     }
   </script>
 </body>

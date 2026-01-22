@@ -1,3 +1,8 @@
 [build]
   publish = "site"
   functions = "netlify/functions"
+
+[[redirects]]
+  from = "/login/confirm/*"
+  to = "/login/confirm/"
+  status = 200
