@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TERMO 3.0 · Dettaglio pratica CT3.0</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/.netlify/functions/config"></script>
+  <script src="/assets/supabase-client.js"></script>
+  <script defer src="/assets/auth-guard.js"></script>
+  <script defer src="/ct30/pratiche/detail/detail.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="left">
+        <img src="/IMG/termo-3.0.png" alt="TERMO 3.0">
+        <div class="title">
+          <b id="practiceTitle">Pratica CT3.0</b>
+          <span id="practiceMeta" class="muted">Caricamento...</span>
+        </div>
+      </div>
+      <div style="display:flex; gap:10px;">
+        <a class="btn inline" href="/ct30/pratiche/new/">Nuova pratica</a>
+        <a class="btn inline secondary" href="/dashboard/">Dashboard</a>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="anagrafica">Anagrafica</button>
+        <button class="tab-btn" data-tab="documenti">Documenti operative</button>
+      </div>
+
+      <section id="tab-anagrafica" class="tab-panel active">
+        <div class="note" id="practiceStatus">Caricamento dati pratica...</div>
+        <div class="form-grid" style="margin-top:16px;">
+          <div class="form-field">
+            <label>Tipo soggetto</label>
+            <input id="subjectType" type="text" readonly>
+          </div>
+          <div class="form-field">
+            <label>ID pratica</label>
+            <input id="practiceId" type="text" readonly>
+          </div>
+        </div>
+      </section>
+
+      <section id="tab-documenti" class="tab-panel">
+        <form id="uploadForm" class="form-grid">
+          <div class="form-field">
+            <label for="docKind">Tipo documento</label>
+            <input id="docKind" name="docKind" type="text" placeholder="Es. Domanda CT3.0">
+          </div>
+          <div class="form-field">
+            <label for="docFile">File</label>
+            <input id="docFile" name="docFile" type="file" required>
+          </div>
+          <div class="form-field" style="grid-column: 1 / -1;">
+            <button class="btn" type="submit">Carica documento</button>
+            <div id="uploadStatus" class="status">Carica un file per associare un documento.</div>
+          </div>
+        </form>
+
+        <div class="table-card" style="margin-top:18px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Documento</th>
+                <th>Tipo</th>
+                <th>Caricato</th>
+                <th>Percorso</th>
+              </tr>
+            </thead>
+            <tbody id="documentsBody">
+              <tr>
+                <td colspan="4" class="muted">Nessun documento caricato.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
