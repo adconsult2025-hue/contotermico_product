@@ -308,10 +308,10 @@ function renderUnits(paneEl, units, practiceId, uid) {
 
 async function loadInterventions(practiceId) {
   const { data, error } = await window.__supabase
-    .from('ct_interventions')
-    .select('*')
+    .from('v_ct_interventions_by_practice')
+    .select('practice_intervention_id, intervention_code, category, description, eligible_ct, note, practice_intervention_created_at')
     .eq('practice_id', practiceId)
-    .order('created_at', { ascending: false });
+    .order('practice_intervention_created_at', { ascending: true });
   if (error) throw error;
   return data || [];
 }
@@ -320,37 +320,45 @@ function renderInterventions(paneEl, rows, practiceId, uid) {
   paneEl.innerHTML = `
     <div class="panel ct-section">
       <div class="ct-section__head">
-        <h2 class="ct-section__title">Interventi</h2>
+        <div>
+          <h2 class="ct-section__title">Interventi</h2>
+          <div class="ct-section__sub">Seleziona gli interventi previsti dalla pratica.</div>
+        </div>
         <button class="btn secondary" id="btnAddInt" style="width:auto;">Aggiungi intervento</button>
       </div>
-      <div class="muted small" style="margin-top:6px;">Minimo: scegli un codice (PDC / FV_PDC / INVOLUCRO). I parametri tecnici li completiamo dopo.</div>
-      <div id="intEmpty" class="muted small" style="margin-top:10px; display:none;">
-        Nessun intervento presente. Aggiungi il primo intervento per avviare la simulazione.
-      </div>
       <div id="intError" class="error-text small" style="margin-top:10px; display:none;"></div>
-      <div id="intList" style="margin-top:10px;"></div>
+      <div class="ct-table-wrap" style="margin-top:12px;">
+        <table class="ct-table" id="interventionsTable">
+          <thead>
+            <tr>
+              <th style="width: 14rem;">Codice</th>
+              <th style="width: 12rem;">Categoria</th>
+              <th>Descrizione</th>
+              <th style="width: 7rem; text-align:center;">CT</th>
+              <th style="width: 10rem; text-align:right;">Note</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
 
-      <div id="intForm" style="display:none; margin-top:14px;">
+      <div id="intForm" style="display:none; margin-top:16px;">
         <div class="ct-form">
           <div class="ct-field">
-            <label for="int_code">Codice</label>
-            <input id="int_code" placeholder="es. PDC, FV_PDC, INVOLUCRO" />
+            <label for="int_code">Codice intervento</label>
+            <input id="int_code" placeholder="es. PDC_ARIA_ACQUA" />
           </div>
           <div class="ct-field">
-            <label for="int_title">Titolo</label>
-            <input id="int_title" placeholder="Titolo o descrizione breve" />
+            <label for="int_category">Categoria</label>
+            <input id="int_category" placeholder="es. Pompa di calore" />
           </div>
-          <div class="ct-field">
-            <label for="int_main">Valore</label>
-            <input id="int_main" type="number" step="0.01" value="0" />
+          <div class="ct-field ct-span-2">
+            <label for="int_description">Descrizione</label>
+            <input id="int_description" placeholder="Descrizione intervento" />
           </div>
-          <div class="ct-field">
-            <label for="int_unit">Unità</label>
-            <input id="int_unit" placeholder="kW / m2 / kWh" />
-          </div>
-          <div class="ct-field">
-            <label for="int_cost">Costi ammissibili (€)</label>
-            <input id="int_cost" type="number" step="0.01" value="0" />
+          <div class="ct-field ct-span-2">
+            <label for="int_note">Note</label>
+            <textarea id="int_note" placeholder="Note (ridimensionabile)"></textarea>
           </div>
         </div>
         <div class="ct-actions-row">
@@ -366,9 +374,8 @@ function renderInterventions(paneEl, rows, practiceId, uid) {
     </div>
   `;
 
-  const listEl = paneEl.querySelector('#intList');
-  const emptyEl = paneEl.querySelector('#intEmpty');
   const errEl = paneEl.querySelector('#intError');
+  const tbody = paneEl.querySelector('#interventionsTable tbody');
   const formEl = paneEl.querySelector('#intForm');
   const addBtn = paneEl.querySelector('#btnAddInt');
   const saveBtn = paneEl.querySelector('#btnSaveInt');
@@ -376,19 +383,23 @@ function renderInterventions(paneEl, rows, practiceId, uid) {
   const calcBtn = paneEl.querySelector('#btnCalc');
   const calcStatus = paneEl.querySelector('#calcStatus');
 
+  tbody.innerHTML = '';
   if (!rows.length) {
-    emptyEl.style.display = '';
-    listEl.innerHTML = '';
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td colspan="5" style="opacity:.8;">Nessun intervento presente. Aggiungi il primo intervento per proseguire.</td>`;
+    tbody.appendChild(tr);
   } else {
-    emptyEl.style.display = 'none';
-    listEl.innerHTML = rows.map(r => `
-      <div class="row" style="justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,.08);">
-        <div>
-          <div><b>${esc(r.intervention_code)}</b> — ${esc(r.title || '')}</div>
-          <div class="muted small">Valore: ${r.data?.main_value ?? ''} ${esc(r.data?.unit || '')} · Costi ammissibili: € ${r.data?.eligible_costs ?? ''}</div>
-        </div>
-      </div>
-    `).join('');
+    rows.forEach((r) => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong>${esc(r.intervention_code || '')}</strong></td>
+        <td>${esc(r.category || '')}</td>
+        <td>${esc(r.description || '')}</td>
+        <td style="text-align:center;">${r.eligible_ct ? 'Sì' : 'No'}</td>
+        <td style="text-align:right;">${esc(r.note || '')}</td>
+      `;
+      tbody.appendChild(tr);
+    });
   }
 
   addBtn.addEventListener('click', () => {
@@ -403,25 +414,36 @@ function renderInterventions(paneEl, rows, practiceId, uid) {
 
   saveBtn.addEventListener('click', async () => {
     const code = paneEl.querySelector('#int_code').value.trim().toUpperCase();
-    const title = paneEl.querySelector('#int_title').value.trim();
+    const category = paneEl.querySelector('#int_category').value.trim();
+    const description = paneEl.querySelector('#int_description').value.trim();
+    const note = paneEl.querySelector('#int_note').value.trim();
     if (!code) {
       errEl.textContent = 'Inserisci il codice intervento.';
       errEl.style.display = '';
       return;
     }
-    const data = {
-      main_value: Number(paneEl.querySelector('#int_main').value || 0),
-      unit: paneEl.querySelector('#int_unit').value.trim() || null,
-      eligible_costs: Number(paneEl.querySelector('#int_cost').value || 0)
-    };
-    const payload = {
-      practice_id: practiceId,
-      owner_user_id: uid,
-      intervention_code: code,
-      title,
-      data
-    };
-    const { error } = await window.__supabase.from('ct_interventions').insert(payload);
+    if (category || description) {
+      const { error: catErr } = await window.__supabase
+        .from('ct_interventions')
+        .upsert({
+          code,
+          category: category || 'GEN',
+          description: description || ''
+        }, { onConflict: 'code' });
+      if (catErr) {
+        errEl.textContent = `Errore salvataggio catalogo interventi: ${catErr.message}`;
+        errEl.style.display = '';
+        return;
+      }
+    }
+
+    const { error } = await window.__supabase
+      .from('ct_practice_interventions')
+      .insert({
+        practice_id: practiceId,
+        intervention_code: code,
+        note: note || null
+      });
     if (error) {
       errEl.textContent = `Errore salvataggio intervento: ${error.message}`;
       errEl.style.display = '';
@@ -436,10 +458,11 @@ function renderInterventions(paneEl, rows, practiceId, uid) {
     try {
       const inputSnapshot = {
         interventions: rows.map((r) => ({
-          id: r.id,
+          id: r.practice_intervention_id,
           code: r.intervention_code,
-          title: r.title,
-          data: r.data || {}
+          category: r.category || null,
+          description: r.description || null,
+          note: r.note || null
         }))
       };
       const { data: runRows, error: runErr } = await window.__supabase
@@ -461,12 +484,13 @@ function renderInterventions(paneEl, rows, practiceId, uid) {
           practice_id: practiceId,
           owner_user_id: uid,
           scope: 'intervention',
-          ref_id: r.id,
+          ref_id: r.practice_intervention_id,
           result: {
             intervention_code: r.intervention_code,
-            eligible_costs: r.data?.eligible_costs ?? 0,
-            main_value: r.data?.main_value ?? 0,
-            unit: r.data?.unit ?? null
+            category: r.category || null,
+            description: r.description || null,
+            eligible_ct: r.eligible_ct ?? null,
+            note: r.note || null
           }
         }));
         const { error: resErr } = await window.__supabase
