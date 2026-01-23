@@ -93,14 +93,14 @@ body{
 /* Ridimensiona il logo nella sidebar e nell’header */
 .logo img,
 .brand-logo img{
-  max-width: 100px;   /* Imposta una larghezza massima */
-  height: auto;       /* Mantiene le proporzioni */
+  max-width: 64px;
+  height: auto;
   object-fit: contain;
 }
 .sidebar .logo img,
 .app-header img{
-  max-width: 56px;
-  max-height: 56px;
+  max-width: 64px;
+  max-height: 64px;
   width: auto;
   height: auto;
   object-fit: contain;
@@ -320,7 +320,7 @@ body{
   align-items:center;
   gap:12px;
 }
-.app-header img{ width:36px; height:36px; object-fit:contain; }
+.app-header img{ width:auto; height:auto; max-width:64px; max-height:64px; object-fit:contain; }
 .app-header .title{
   display:flex; flex-direction:column; line-height:1.15;
 }

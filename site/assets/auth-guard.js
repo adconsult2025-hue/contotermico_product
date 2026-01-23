@@ -10,23 +10,17 @@
   async function getSessionSafe() {
     // Wait a bit for supabase client bootstrap
     for (let i = 0; i < 20; i++) {
-      if (window.__supabase) break;
+      if (window.getSessionUser) break;
       await new Promise((r) => setTimeout(r, 50));
     }
-    if (!window.__supabase) return null;
-    try {
-      const { data, error } = await window.__supabase.auth.getSession();
-      if (error) return null;
-      return data?.session || null;
-    } catch (e) {
-      return null;
-    }
+    if (!window.getSessionUser) return null;
+    return window.getSessionUser();
   }
 
   async function waitForSessionOrAuthEvent(timeoutMs = 1500) {
     // If session is already there, good.
-    const s0 = await getSessionSafe();
-    if (s0) return s0;
+    const u0 = await getSessionSafe();
+    if (u0) return u0;
 
     // Otherwise wait for auth state change (deep links / refresh token / URL hash)
     if (!window.__supabase) return null;
@@ -38,7 +32,7 @@
 
     const { data: sub } = window.__supabase.auth.onAuthStateChange((_event, session) => {
       if (session && !done) {
-        sess = session;
+        sess = session?.user || null;
         done = true;
         clearTimeout(t);
       }
@@ -61,8 +55,9 @@
 
   async function guard() {
     if (isLoginPage()) return;
-    const session = await waitForSessionOrAuthEvent(2000);
-    if (!session) {
+    const user = await waitForSessionOrAuthEvent(2000);
+    if (!user) {
+      console.debug('[auth-guard] redirect /login (no session user)');
       window.location.href = LOGIN_PATH;
       return;
     }
