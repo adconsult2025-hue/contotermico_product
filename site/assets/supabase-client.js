@@ -3,7 +3,7 @@
 //  - <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 //  - <script src="/config.js"></script>
 //
-// Exposes: window.__supabase
+// Exposes: window.__supabase, window.getSessionUser, window.isSuperadmin
 
 (function () {
   const url = window.__TERMO_SUPABASE_URL;
