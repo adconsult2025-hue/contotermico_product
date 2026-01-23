@@ -297,6 +297,8 @@ body{
   color: var(--muted);
 }
 .data-table tr:last-child td{ border-bottom:none; }
+.data-table .row-link{ cursor:pointer; }
+.data-table .row-link:hover td{ background: rgba(255,255,255,.04); }
 .align-right{ text-align:right; }
 .link{
   color: var(--brand-blue);

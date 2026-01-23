@@ -4,9 +4,10 @@ Piattaforma proprietaria per la gestione del Conto Termico 3.0.
 
 ## Setup Supabase CT3.0
 
-1. Esegui la migrazione SQL presente in `supabase/sql/001_ct30_core.sql`.
+1. Esegui la migrazione SQL presente in `supabase/sql/001_ct30_core.sql` dalla console SQL di Supabase.
 2. Crea un bucket Storage chiamato `ct-docs` con visibilità **private**.
 3. Applica la policy Storage per permettere lettura/scrittura solo sui percorsi che iniziano con lo UID dell'utente.
+4. Su Netlify aggiungi la variabile `TERMO_SUPABASE_SERVICE_ROLE_KEY` (service role key) e le altre variabili Supabase richieste dal progetto.
 
 Esempio policy Storage (in console SQL Supabase):
 

@@ -1,10 +1,13 @@
-const { getAdminClient, requireUser } = require("./_supabase");
+const { getAdminClient, requireUser, corsHeaders } = require("./_supabase");
 
 exports.handler = async (event) => {
+  if (event.httpMethod === "OPTIONS") {
+    return { statusCode: 200, headers: corsHeaders, body: "" };
+  }
   if (event.httpMethod !== "GET") {
     return {
       statusCode: 405,
-      headers: { "Content-Type": "application/json; charset=utf-8" },
+      headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" },
       body: JSON.stringify({ ok: false, error: "Metodo non consentito." }),
     };
   }
@@ -16,7 +19,7 @@ exports.handler = async (event) => {
     if (!practiceId) {
       return {
         statusCode: 400,
-        headers: { "Content-Type": "application/json; charset=utf-8" },
+        headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" },
         body: JSON.stringify({ ok: false, error: "Parametro id mancante." }),
       };
     }
@@ -56,20 +59,32 @@ exports.handler = async (event) => {
       throw new Error(documentsError.message);
     }
 
+    const { data: events, error: eventsError } = await supabase
+      .from("ct_events")
+      .select("id,type,payload,created_at")
+      .eq("practice_id", practiceId)
+      .eq("owner_user_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (eventsError) {
+      throw new Error(eventsError.message);
+    }
+
     return {
       statusCode: 200,
-      headers: { "Content-Type": "application/json; charset=utf-8" },
+      headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" },
       body: JSON.stringify({
         ok: true,
         practice,
         subject: subject || null,
         documents: documents || [],
+        events: events || [],
       }),
     };
   } catch (error) {
     return {
       statusCode: error.statusCode || 500,
-      headers: { "Content-Type": "application/json; charset=utf-8" },
+      headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" },
       body: JSON.stringify({ ok: false, error: error.message || "Errore imprevisto." }),
     };
   }

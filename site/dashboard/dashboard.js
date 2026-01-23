@@ -49,18 +49,27 @@ async function loadPractices() {
     if (practicesEmpty) practicesEmpty.style.display = 'none';
     practicesBody.innerHTML = payload.practices
       .map((practice) => {
+        const href = `/ct30/pratiche/detail/?id=${practice.id}`;
         return `
-        <tr>
+        <tr class="row-link" data-href="${href}">
           <td>${practice.title || 'Senza titolo'}</td>
           <td>${practice.status || 'draft'}</td>
           <td>${formatDate(practice.created_at)}</td>
           <td class="align-right">
-            <a class="link" href="/ct30/pratiche/detail/?id=${practice.id}">Apri</a>
+            <a class="link" href="${href}">Apri</a>
           </td>
         </tr>
       `;
       })
       .join('');
+
+    practicesBody.querySelectorAll('.row-link').forEach((row) => {
+      row.addEventListener('click', (event) => {
+        if (event.target?.closest('a')) return;
+        const href = row.dataset.href;
+        if (href) window.location.href = href;
+      });
+    });
   } catch (error) {
     practicesBody.innerHTML = `
       <tr>

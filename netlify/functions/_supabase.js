@@ -4,6 +4,11 @@ const SUPABASE_URL = process.env.TERMO_SUPABASE_URL;
 const SERVICE_ROLE_KEY = process.env.TERMO_SUPABASE_SERVICE_ROLE_KEY;
 
 let adminClient;
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+};
 
 function getAdminClient() {
   if (!adminClient) {
@@ -42,3 +47,4 @@ async function requireUser(event) {
 }
 
 module.exports = { getAdminClient, requireUser };
+module.exports.corsHeaders = corsHeaders;

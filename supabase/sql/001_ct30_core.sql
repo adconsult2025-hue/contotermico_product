@@ -3,39 +3,39 @@ create extension if not exists pgcrypto;
 create table if not exists ct_practices (
   id uuid primary key default gen_random_uuid(),
   owner_user_id uuid not null,
-  title text,
-  subject_type text,
-  status text default 'draft',
+  title text not null,
+  subject_type text not null default 'CONDOMINIO',
+  status text not null default 'draft',
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
 
 create table if not exists ct_subjects (
   id uuid primary key default gen_random_uuid(),
-  practice_id uuid references ct_practices(id) on delete cascade,
+  practice_id uuid not null references ct_practices(id) on delete cascade,
   owner_user_id uuid not null,
-  data jsonb default '{}'::jsonb,
+  data jsonb not null default '{}'::jsonb,
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
 
 create table if not exists ct_documents (
   id uuid primary key default gen_random_uuid(),
-  practice_id uuid references ct_practices(id) on delete cascade,
+  practice_id uuid not null references ct_practices(id) on delete cascade,
   owner_user_id uuid not null,
-  kind text,
-  filename text,
-  storage_path text,
-  meta jsonb default '{}'::jsonb,
+  kind text not null default 'GENERIC',
+  filename text not null,
+  storage_path text not null,
+  meta jsonb not null default '{}'::jsonb,
   created_at timestamptz default now()
 );
 
 create table if not exists ct_events (
   id uuid primary key default gen_random_uuid(),
-  practice_id uuid references ct_practices(id) on delete cascade,
+  practice_id uuid not null references ct_practices(id) on delete cascade,
   owner_user_id uuid not null,
-  type text,
-  payload jsonb default '{}'::jsonb,
+  type text not null,
+  payload jsonb not null default '{}'::jsonb,
   created_at timestamptz default now()
 );
 
