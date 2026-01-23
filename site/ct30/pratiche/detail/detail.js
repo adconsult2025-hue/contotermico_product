@@ -170,57 +170,101 @@ async function loadUnits(practiceId) {
   return data || [];
 }
 
-function renderUnits(paneEl, units) {
+function renderUnits(paneEl, units, practiceId, uid) {
   paneEl.innerHTML = `
     <div class="panel">
       <div class="row" style="justify-content:space-between; align-items:center;">
-        <h2>Unità immobiliari</h2>
+        <h2>Unità</h2>
         <button class="btn secondary" id="btnAddUnit" style="width:auto;">Aggiungi unità</button>
       </div>
-      <div class="muted small">Tipologie: PA (100%), Uffici (65%), Residenziale (0% se non ammesso in condominio), Altro.</div>
-      <div class="tableWrap" style="margin-top:12px;">
-        <table class="table">
-          <thead><tr>
-            <th>Unità</th><th>Tipo</th><th>Millesimi</th><th>% Ammiss.</th><th>Note</th>
-          </tr></thead>
-          <tbody id="unitsBody"></tbody>
-        </table>
+      <div class="muted small" style="margin-top:6px;">Tipologie: PA (100%), Uffici (65%), Residenziale, Altro.</div>
+      <div id="unitsEmpty" class="muted small" style="margin-top:10px; display:none;">
+        Nessuna unità presente. Aggiungi la prima unità per proseguire.
       </div>
-      <div class="muted small" style="margin-top:10px;" id="unitsHint"></div>
+      <div id="unitsError" class="error-text small" style="margin-top:10px; display:none;"></div>
+      <div id="unitsList" style="margin-top:10px;"></div>
+
+      <div id="unitForm" style="display:none; margin-top:14px;">
+        <div class="grid2">
+          <label>Codice unità<input id="unit_code" placeholder="es. INT. 3 / Scala A - 2°p" /></label>
+          <label>Tipo unità
+            <select id="unit_type">
+              <option value="pa">PA</option>
+              <option value="ufficio">Ufficio</option>
+              <option value="residenziale" selected>Residenziale</option>
+              <option value="altro">Altro</option>
+            </select>
+          </label>
+          <label>Millesimi<input id="unit_millesimi" type="number" step="0.01" value="0" /></label>
+          <label>% Ammissibile<input id="unit_eligible" type="number" step="0.01" placeholder="es. 100 / 65 / 0" /></label>
+          <label>Note<input id="unit_notes" placeholder="Note facoltative" /></label>
+        </div>
+        <div class="row" style="gap:10px; margin-top:12px;">
+          <button class="btn primary" id="btnSaveUnit" style="width:auto;">Salva unità</button>
+          <button class="btn secondary" id="btnCancelUnit" style="width:auto;">Annulla</button>
+        </div>
+      </div>
     </div>
   `;
 
-  const body = paneEl.querySelector('#unitsBody');
+  const listEl = paneEl.querySelector('#unitsList');
+  const emptyEl = paneEl.querySelector('#unitsEmpty');
+  const errEl = paneEl.querySelector('#unitsError');
+  const formEl = paneEl.querySelector('#unitForm');
+  const addBtn = paneEl.querySelector('#btnAddUnit');
+  const saveBtn = paneEl.querySelector('#btnSaveUnit');
+  const cancelBtn = paneEl.querySelector('#btnCancelUnit');
+
   if (!units.length) {
-    body.innerHTML = `<tr><td colspan="5" class="muted">Nessuna unità. Aggiungila per calcolare ammissibilità e ripartizioni.</td></tr>`;
+    emptyEl.style.display = '';
+    listEl.innerHTML = '';
   } else {
-    body.innerHTML = units.map(u => `
-      <tr>
-        <td>${esc(u.unit_code || '')}</td>
-        <td>${esc(u.unit_type || '')}</td>
-        <td>${u.millesimi ?? ''}</td>
-        <td>${u.eligible_pct ?? ''}</td>
-        <td>${esc(u.notes || '')}</td>
-      </tr>
+    emptyEl.style.display = 'none';
+    listEl.innerHTML = units.map(u => `
+      <div class="row" style="justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,.08);">
+        <div>
+          <div><b>${esc(u.unit_code || '')}</b> — ${esc(u.unit_type || '')}</div>
+          <div class="muted small">Millesimi: ${u.millesimi ?? ''} · % Ammissibile: ${u.eligible_pct ?? ''}</div>
+          ${u.notes ? `<div class="muted small">${esc(u.notes)}</div>` : ''}
+        </div>
+      </div>
     `).join('');
   }
-}
 
-async function addUnit(practiceId, uid) {
-  const unit_code = prompt('Codice unità (es. INT. 3 / Scala A - 2°p):');
-  if (unit_code === null) return;
-  const unit_type = prompt("Tipo unità: pa / ufficio / residenziale / altro", "residenziale");
-  if (unit_type === null) return;
-  const eligible_pct = prompt("Percentuale ammissibile (es. 100 / 65 / 0). Lascia vuoto per decidere dopo:", "");
-  const payload = {
-    practice_id: practiceId,
-    owner_user_id: uid,
-    unit_code: unit_code.trim(),
-    unit_type: (unit_type || 'residenziale').trim().toLowerCase(),
-    eligible_pct: eligible_pct === '' ? null : Number(eligible_pct),
-  };
-  const { error } = await window.__supabase.from('ct_units').insert(payload);
-  if (error) throw error;
+  addBtn.addEventListener('click', () => {
+    formEl.style.display = '';
+    errEl.style.display = 'none';
+    errEl.textContent = '';
+  });
+
+  cancelBtn.addEventListener('click', () => {
+    formEl.style.display = 'none';
+  });
+
+  saveBtn.addEventListener('click', async () => {
+    const payload = {
+      practice_id: practiceId,
+      owner_user_id: uid,
+      unit_code: paneEl.querySelector('#unit_code').value.trim(),
+      unit_type: paneEl.querySelector('#unit_type').value || 'residenziale',
+      millesimi: Number(paneEl.querySelector('#unit_millesimi').value || 0),
+      eligible_pct: paneEl.querySelector('#unit_eligible').value === '' ? null : Number(paneEl.querySelector('#unit_eligible').value),
+      notes: paneEl.querySelector('#unit_notes').value.trim() || null
+    };
+    if (!payload.unit_code) {
+      errEl.textContent = 'Inserisci il codice unità.';
+      errEl.style.display = '';
+      return;
+    }
+    const { error } = await window.__supabase.from('ct_units').insert(payload);
+    if (error) {
+      errEl.textContent = `Errore salvataggio unità: ${error.message}`;
+      errEl.style.display = '';
+      return;
+    }
+    const updated = await loadUnits(practiceId);
+    renderUnits(paneEl, updated, practiceId, uid);
+  });
 }
 
 async function loadInterventions(practiceId) {
@@ -233,52 +277,154 @@ async function loadInterventions(practiceId) {
   return data || [];
 }
 
-function renderInterventions(paneEl, rows) {
+function renderInterventions(paneEl, rows, practiceId, uid) {
   paneEl.innerHTML = `
     <div class="panel">
       <div class="row" style="justify-content:space-between; align-items:center;">
         <h2>Interventi</h2>
         <button class="btn secondary" id="btnAddInt" style="width:auto;">Aggiungi intervento</button>
       </div>
-      <div class="muted small">Minimo: scegli un codice (PDC / FV_PDC / INVOLUCRO). I parametri tecnici li completiamo dopo.</div>
-      <div class="tableWrap" style="margin-top:12px;">
-        <table class="table">
-          <thead><tr>
-            <th>Codice</th><th>Titolo</th><th>Parametri</th>
-          </tr></thead>
-          <tbody id="intBody"></tbody>
-        </table>
+      <div class="muted small" style="margin-top:6px;">Minimo: scegli un codice (PDC / FV_PDC / INVOLUCRO). I parametri tecnici li completiamo dopo.</div>
+      <div id="intEmpty" class="muted small" style="margin-top:10px; display:none;">
+        Nessun intervento presente. Aggiungi il primo intervento per avviare la simulazione.
+      </div>
+      <div id="intError" class="error-text small" style="margin-top:10px; display:none;"></div>
+      <div id="intList" style="margin-top:10px;"></div>
+
+      <div id="intForm" style="display:none; margin-top:14px;">
+        <div class="grid2">
+          <label>Codice<input id="int_code" placeholder="es. PDC, FV_PDC, INVOLUCRO" /></label>
+          <label>Titolo<input id="int_title" placeholder="Titolo o descrizione breve" /></label>
+          <label>Valore<input id="int_main" type="number" step="0.01" value="0" /></label>
+          <label>Unità<input id="int_unit" placeholder="kW / m2 / kWh" /></label>
+          <label>Costi ammissibili (€)<input id="int_cost" type="number" step="0.01" value="0" /></label>
+        </div>
+        <div class="row" style="gap:10px; margin-top:12px;">
+          <button class="btn primary" id="btnSaveInt" style="width:auto;">Salva intervento</button>
+          <button class="btn secondary" id="btnCancelInt" style="width:auto;">Annulla</button>
+        </div>
+      </div>
+
+      <div class="row" style="gap:10px; margin-top:14px;">
+        <button class="btn primary" id="btnCalc" style="width:auto;">Calcola (stub)</button>
+        <div id="calcStatus" class="muted small"></div>
       </div>
     </div>
   `;
-  const body = paneEl.querySelector('#intBody');
+
+  const listEl = paneEl.querySelector('#intList');
+  const emptyEl = paneEl.querySelector('#intEmpty');
+  const errEl = paneEl.querySelector('#intError');
+  const formEl = paneEl.querySelector('#intForm');
+  const addBtn = paneEl.querySelector('#btnAddInt');
+  const saveBtn = paneEl.querySelector('#btnSaveInt');
+  const cancelBtn = paneEl.querySelector('#btnCancelInt');
+  const calcBtn = paneEl.querySelector('#btnCalc');
+  const calcStatus = paneEl.querySelector('#calcStatus');
+
   if (!rows.length) {
-    body.innerHTML = `<tr><td colspan="3" class="muted">Nessun intervento. Aggiungilo per avviare il calcolo incentivo.</td></tr>`;
+    emptyEl.style.display = '';
+    listEl.innerHTML = '';
   } else {
-    body.innerHTML = rows.map(r => `
-      <tr>
-        <td>${esc(r.intervention_code)}</td>
-        <td>${esc(r.title || '')}</td>
-        <td class="muted small">${esc(JSON.stringify(r.data || {}))}</td>
-      </tr>
+    emptyEl.style.display = 'none';
+    listEl.innerHTML = rows.map(r => `
+      <div class="row" style="justify-content:space-between; padding:10px 0; border-bottom:1px solid rgba(255,255,255,.08);">
+        <div>
+          <div><b>${esc(r.intervention_code)}</b> — ${esc(r.title || '')}</div>
+          <div class="muted small">Valore: ${r.data?.main_value ?? ''} ${esc(r.data?.unit || '')} · Costi ammissibili: € ${r.data?.eligible_costs ?? ''}</div>
+        </div>
+      </div>
     `).join('');
   }
-}
 
-async function addIntervention(practiceId, uid) {
-  const code = prompt("Codice intervento: PDC / FV_PDC / INVOLUCRO", "PDC");
-  if (code === null) return;
-  const title = prompt("Titolo intervento (opzionale):", "");
-  if (title === null) return;
-  const payload = {
-    practice_id: practiceId,
-    owner_user_id: uid,
-    intervention_code: code.trim().toUpperCase(),
-    title: title.trim(),
-    data: {}
-  };
-  const { error } = await window.__supabase.from('ct_interventions').insert(payload);
-  if (error) throw error;
+  addBtn.addEventListener('click', () => {
+    formEl.style.display = '';
+    errEl.style.display = 'none';
+    errEl.textContent = '';
+  });
+
+  cancelBtn.addEventListener('click', () => {
+    formEl.style.display = 'none';
+  });
+
+  saveBtn.addEventListener('click', async () => {
+    const code = paneEl.querySelector('#int_code').value.trim().toUpperCase();
+    const title = paneEl.querySelector('#int_title').value.trim();
+    if (!code) {
+      errEl.textContent = 'Inserisci il codice intervento.';
+      errEl.style.display = '';
+      return;
+    }
+    const data = {
+      main_value: Number(paneEl.querySelector('#int_main').value || 0),
+      unit: paneEl.querySelector('#int_unit').value.trim() || null,
+      eligible_costs: Number(paneEl.querySelector('#int_cost').value || 0)
+    };
+    const payload = {
+      practice_id: practiceId,
+      owner_user_id: uid,
+      intervention_code: code,
+      title,
+      data
+    };
+    const { error } = await window.__supabase.from('ct_interventions').insert(payload);
+    if (error) {
+      errEl.textContent = `Errore salvataggio intervento: ${error.message}`;
+      errEl.style.display = '';
+      return;
+    }
+    const updated = await loadInterventions(practiceId);
+    renderInterventions(paneEl, updated, practiceId, uid);
+  });
+
+  calcBtn.addEventListener('click', async () => {
+    calcStatus.textContent = 'Calcolo in corso…';
+    try {
+      const inputSnapshot = {
+        interventions: rows.map((r) => ({
+          id: r.id,
+          code: r.intervention_code,
+          title: r.title,
+          data: r.data || {}
+        }))
+      };
+      const { data: runRows, error: runErr } = await window.__supabase
+        .from('ct_calc_runs')
+        .insert({
+          practice_id: practiceId,
+          owner_user_id: uid,
+          engine_version: 'stub-0.1',
+          input_snapshot: inputSnapshot
+        })
+        .select('*');
+      if (runErr) throw runErr;
+      const runId = runRows?.[0]?.id;
+      if (!runId) throw new Error('Run non creato.');
+
+      if (rows.length) {
+        const results = rows.map((r) => ({
+          run_id: runId,
+          practice_id: practiceId,
+          owner_user_id: uid,
+          scope: 'intervention',
+          ref_id: r.id,
+          result: {
+            intervention_code: r.intervention_code,
+            eligible_costs: r.data?.eligible_costs ?? 0,
+            main_value: r.data?.main_value ?? 0,
+            unit: r.data?.unit ?? null
+          }
+        }));
+        const { error: resErr } = await window.__supabase
+          .from('ct_calc_results')
+          .insert(results);
+        if (resErr) throw resErr;
+      }
+      calcStatus.textContent = `Ok. Run creato: ${runId}`;
+    } catch (e) {
+      calcStatus.textContent = `Errore calcolo: ${e?.message || e}`;
+    }
+  });
 }
 
 async function main() {
@@ -306,34 +452,10 @@ async function main() {
   renderSubjectForm(subject);
 
   const units = await loadUnits(practice.id);
-  renderUnits(paneU, units);
-  paneU.querySelector('#btnAddUnit').addEventListener('click', async () => {
-    try {
-      await addUnit(practice.id, uid);
-      const updated = await loadUnits(practice.id);
-      renderUnits(paneU, updated);
-      paneU.querySelector('#btnAddUnit').addEventListener('click', async () => {
-        await addUnit(practice.id, uid);
-      });
-    } catch (e) {
-      alert('Errore unità: ' + (e?.message || e));
-    }
-  });
+  renderUnits(paneU, units, practice.id, uid);
 
   const ints = await loadInterventions(practice.id);
-  renderInterventions(paneI, ints);
-  paneI.querySelector('#btnAddInt').addEventListener('click', async () => {
-    try {
-      await addIntervention(practice.id, uid);
-      const updated = await loadInterventions(practice.id);
-      renderInterventions(paneI, updated);
-      paneI.querySelector('#btnAddInt').addEventListener('click', async () => {
-        await addIntervention(practice.id, uid);
-      });
-    } catch (e) {
-      alert('Errore interventi: ' + (e?.message || e));
-    }
-  });
+  renderInterventions(paneI, ints, practice.id, uid);
 
   setStatus('Pratica caricata.');
 }
