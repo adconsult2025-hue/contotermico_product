@@ -1,31 +1,72 @@
-(async () => {
-  const isLogin = window.location.pathname.startsWith('/login/');
+(function () {
+  const LOGIN_PATH = '/login/';
+  const HOME_AFTER_LOGIN = '/dashboard/';
 
-  const attempts = 8;
-  const intervalMs = 150;
-  let session = null;
+  function isLoginPage() {
+    const p = window.location.pathname || '/';
+    return p === '/login/' || p === '/login';
+  }
 
-  for (let i = 0; i < attempts; i += 1) {
-    if (window.__supabase?.auth) {
+  async function getSessionSafe() {
+    // Wait a bit for supabase client bootstrap
+    for (let i = 0; i < 20; i++) {
+      if (window.__supabase) break;
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    if (!window.__supabase) return null;
+    try {
       const { data, error } = await window.__supabase.auth.getSession();
-      if (error) {
-        console.warn('[auth-guard] getSession error', error);
+      if (error) return null;
+      return data?.session || null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function waitForSessionOrAuthEvent(timeoutMs = 1500) {
+    // If session is already there, good.
+    const s0 = await getSessionSafe();
+    if (s0) return s0;
+
+    // Otherwise wait for auth state change (deep links / refresh token / URL hash)
+    if (!window.__supabase) return null;
+    let done = false;
+    let sess = null;
+    const t = setTimeout(() => {
+      done = true;
+    }, timeoutMs);
+
+    const { data: sub } = window.__supabase.auth.onAuthStateChange((_event, session) => {
+      if (session && !done) {
+        sess = session;
+        done = true;
+        clearTimeout(t);
       }
-      session = data?.session ?? null;
-      if (session?.user) {
-        return;
+    });
+
+    // Poll quickly while waiting
+    while (!done) {
+      const s = await getSessionSafe();
+      if (s) {
+        sess = s;
+        done = true;
+        break;
       }
+      await new Promise((r) => setTimeout(r, 80));
     }
 
-    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    try { sub?.subscription?.unsubscribe?.(); } catch (_) {}
+    return sess;
   }
 
-  if (!window.__supabase?.auth) {
-    console.warn('[auth-guard] supabase client missing on this page');
-    return;
+  async function guard() {
+    if (isLoginPage()) return;
+    const session = await waitForSessionOrAuthEvent(2000);
+    if (!session) {
+      window.location.href = LOGIN_PATH;
+      return;
+    }
   }
 
-  if (!session?.user && !isLogin) {
-    window.location.href = '/login/';
-  }
+  document.addEventListener('DOMContentLoaded', guard);
 })();

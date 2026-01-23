@@ -21,10 +21,10 @@ async function loadPractice() {
     return;
   }
 
-  if (!window.TERMO_SUPABASE?.supabase) return;
+  if (!window.__supabase) return;
 
   try {
-    const { data, error } = await window.TERMO_SUPABASE.supabase
+    const { data, error } = await window.__supabase
       .from('ct_practices')
       .select('*')
       .eq('id', practiceId)
