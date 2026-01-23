@@ -7,57 +7,26 @@
     return p === '/login/' || p === '/login';
   }
 
-  async function getSessionSafe() {
-    // Wait a bit for supabase client bootstrap
-    for (let i = 0; i < 20; i++) {
-      if (window.getSessionUser) break;
-      await new Promise((r) => setTimeout(r, 50));
-    }
-    if (!window.getSessionUser) return null;
-    return window.getSessionUser();
+  function wait(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
-  async function waitForSessionOrAuthEvent(timeoutMs = 1500) {
-    // If session is already there, good.
-    const u0 = await getSessionSafe();
-    if (u0) return u0;
-
-    // Otherwise wait for auth state change (deep links / refresh token / URL hash)
-    if (!window.__supabase) return null;
-    let done = false;
-    let sess = null;
-    const t = setTimeout(() => {
-      done = true;
-    }, timeoutMs);
-
-    const { data: sub } = window.__supabase.auth.onAuthStateChange((_event, session) => {
-      if (session && !done) {
-        sess = session?.user || null;
-        done = true;
-        clearTimeout(t);
-      }
-    });
-
-    // Poll quickly while waiting
-    while (!done) {
-      const s = await getSessionSafe();
-      if (s) {
-        sess = s;
-        done = true;
-        break;
-      }
-      await new Promise((r) => setTimeout(r, 80));
+  async function getSessionWithRetry() {
+    if (!window.termoGetSession) return null;
+    let session = null;
+    for (let i = 0; i < 3; i += 1) {
+      session = await window.termoGetSession();
+      if (session?.user) break;
+      await wait(500);
     }
-
-    try { sub?.subscription?.unsubscribe?.(); } catch (_) {}
-    return sess;
+    return session;
   }
 
   async function guard() {
     if (isLoginPage()) return;
-    const user = await waitForSessionOrAuthEvent(2000);
-    if (!user) {
-      console.debug('[auth-guard] redirect /login (no session user)');
+    const session = await getSessionWithRetry();
+    if (!session?.user) {
+      console.debug('[auth-guard] redirecting to /login/ from', window.location.pathname || '/');
       window.location.href = LOGIN_PATH;
       return;
     }

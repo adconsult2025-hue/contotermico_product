@@ -20,7 +20,7 @@
 
   // Create once
   if (!window.__supabase) {
-    window.__supabase = window.supabase.createClient(url, anon, {
+    window.__supabase = supabase.createClient(url, anon, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
@@ -29,36 +29,6 @@
     });
   }
 
-  if (!window.getSessionUser) {
-    window.getSessionUser = async function getSessionUser() {
-      if (!window.__supabase) return null;
-      try {
-        const { data, error } = await window.__supabase.auth.getSession();
-        if (error) return null;
-        return data?.session?.user || null;
-      } catch (err) {
-        console.debug('[supabase-client] getSessionUser failed', err);
-        return null;
-      }
-    };
-  }
-
-  if (!window.isSuperadmin) {
-    window.isSuperadmin = async function isSuperadmin() {
-      const user = await window.getSessionUser?.();
-      if (!user?.id || !window.__supabase) return false;
-      try {
-        const { data, error } = await window.__supabase
-          .from('app_superadmins')
-          .select('user_id')
-          .eq('user_id', user.id)
-          .limit(1);
-        if (error) return false;
-        return Boolean(data?.length);
-      } catch (err) {
-        console.debug('[supabase-client] isSuperadmin failed', err);
-        return false;
-      }
-    };
-  }
+  window.termoGetSession = async () => (await window.__supabase.auth.getSession()).data.session;
+  window.termoGetUser = async () => (await window.__supabase.auth.getUser()).data.user;
 })();

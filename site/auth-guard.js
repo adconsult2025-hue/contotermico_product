@@ -1,20 +1,27 @@
 // Guard minimale: se non sei loggato -> /login/
-async function waitForSessionUser() {
-  for (let i = 0; i < 20; i++) {
-    if (window.getSessionUser) break;
-    await new Promise((r) => setTimeout(r, 50));
+// NB: qui NON facciamo più gate lato function (lo reinseriremo dopo, stabile).
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function getSessionWithRetry() {
+  if (!window.termoGetSession) return null;
+  let session = null;
+  for (let i = 0; i < 3; i += 1) {
+    session = await window.termoGetSession();
+    if (session?.user) break;
+    await wait(500);
   }
-  if (!window.getSessionUser) return null;
-  return window.getSessionUser();
+  return session;
 }
 
 async function checkAuth() {
   const path = window.location.pathname || '';
   if (path === '/' || path.startsWith('/login')) return;
 
-  const user = await waitForSessionUser();
-  if (!user) {
-    console.debug('[auth-guard] redirect /login (no session user)');
+  const session = await getSessionWithRetry();
+  if (!session?.user) {
+    console.debug('[auth-guard] redirecting to /login/ from', path);
     window.location.href = '/login/';
   }
 }
