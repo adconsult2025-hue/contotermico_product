@@ -1,26 +1,22 @@
 // Guard minimale: se non sei loggato -> /login/
-// NB: qui NON facciamo più gate lato function (lo reinseriremo dopo, stabile).
-async function getSessionSafe() {
+async function waitForSessionUser() {
   for (let i = 0; i < 20; i++) {
-    if (window.__supabase) break;
+    if (window.getSessionUser) break;
     await new Promise((r) => setTimeout(r, 50));
   }
-  if (!window.__supabase) return null;
-  try {
-    const { data, error } = await window.__supabase.auth.getSession();
-    if (error) return null;
-    return data?.session || null;
-  } catch {
-    return null;
-  }
+  if (!window.getSessionUser) return null;
+  return window.getSessionUser();
 }
 
 async function checkAuth() {
   const path = window.location.pathname || '';
   if (path === '/' || path.startsWith('/login')) return;
 
-  const session = await getSessionSafe();
-  if (!session) window.location.href = '/login/';
+  const user = await waitForSessionUser();
+  if (!user) {
+    console.debug('[auth-guard] redirect /login (no session user)');
+    window.location.href = '/login/';
+  }
 }
 
 document.addEventListener('DOMContentLoaded', () => {

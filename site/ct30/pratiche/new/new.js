@@ -19,12 +19,7 @@ form?.addEventListener('submit', async (event) => {
       throw new Error('Supabase non disponibile.');
     }
 
-    const { data: sessionData, error: sessionError } =
-      await window.__supabase.auth.getSession();
-    if (sessionError) {
-      throw new Error(sessionError.message || 'Sessione non disponibile.');
-    }
-    const user = sessionData?.session?.user;
+    const user = await window.getSessionUser?.();
     if (!user) {
       throw new Error('Nessuna sessione attiva.');
     }
@@ -40,7 +35,10 @@ form?.addEventListener('submit', async (event) => {
       .single();
 
     if (error) {
-      throw new Error(error.message || 'Errore in creazione.');
+      const readable = /row level security|permission|rls/i.test(error.message || '')
+        ? 'Permessi insufficienti per creare la pratica.'
+        : error.message || 'Errore in creazione.';
+      throw new Error(readable);
     }
 
     window.location.href = `/ct30/pratiche/detail/?id=${data.id}`;

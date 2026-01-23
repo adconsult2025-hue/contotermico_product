@@ -1,14 +1,17 @@
 const who = document.getElementById('who');
+const superadminBadge = document.getElementById('superadmin-badge');
 const practicesBody = document.getElementById('table-pratiche-body');
 const practicesEmpty = document.getElementById('table-pratiche-empty');
 const newPracticeButton = document.getElementById('btn-new-pratica');
 
 async function loadUser() {
-  if (!window.__supabase) return;
-  const { data } = await window.__supabase.auth.getSession();
-  const session = data?.session || null;
+  const user = await window.getSessionUser?.();
   if (who) {
-    who.textContent = session?.user?.email || '';
+    who.textContent = user?.email || '';
+  }
+  if (superadminBadge) {
+    const isAdmin = await window.isSuperadmin?.();
+    superadminBadge.style.display = isAdmin ? 'inline-flex' : 'none';
   }
 }
 
@@ -21,10 +24,22 @@ function formatDate(value) {
 async function loadPractices() {
   if (!practicesBody || !window.__supabase) return;
   try {
-    const { data, error } = await window.__supabase
+    const user = await window.getSessionUser?.();
+    const isAdmin = await window.isSuperadmin?.();
+    if (!user) {
+      throw new Error('Sessione non disponibile.');
+    }
+
+    let query = window.__supabase
       .from('ct_practices')
-      .select()
+      .select('id,title,subject_type,status,created_at')
       .order('created_at', { ascending: false });
+
+    if (!isAdmin) {
+      query = query.eq('owner_user_id', user.id);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       throw new Error(error.message || 'Errore nel caricamento.');
