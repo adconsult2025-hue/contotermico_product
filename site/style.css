@@ -97,6 +97,20 @@ body{
   height: auto;       /* Mantiene le proporzioni */
   object-fit: contain;
 }
+.sidebar .logo img,
+.app-header img{
+  max-width: 56px;
+  max-height: 56px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 12px;
+}
+.sidebar .logo{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
 .brand-name{
   display:flex;
   flex-direction:column;

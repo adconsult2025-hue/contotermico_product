@@ -1,30 +1,31 @@
 (async () => {
   const isLogin = window.location.pathname.startsWith('/login/');
 
-  if (window.__supabaseReady === false) {
-    if (!isLogin) {
-      const currentUrl = new URL(window.location.href);
-      if (currentUrl.searchParams.get('err') !== 'supabase') {
-        window.location.href = '/login/?err=supabase';
+  const attempts = 8;
+  const intervalMs = 150;
+  let session = null;
+
+  for (let i = 0; i < attempts; i += 1) {
+    if (window.__supabase?.auth) {
+      const { data, error } = await window.__supabase.auth.getSession();
+      if (error) {
+        console.warn('[auth-guard] getSession error', error);
       }
-      return;
+      session = data?.session ?? null;
+      if (session?.user) {
+        return;
+      }
     }
 
-    const statusEl = document.getElementById('status');
-    if (statusEl) {
-      statusEl.classList.add('error');
-      const strong = statusEl.querySelector('strong');
-      if (strong) {
-        strong.textContent = 'Supabase non disponibile';
-      } else {
-        statusEl.textContent = 'Supabase non disponibile';
-      }
-    }
+    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  }
+
+  if (!window.__supabase?.auth) {
+    console.warn('[auth-guard] supabase client missing on this page');
     return;
   }
 
-  const session = await window.TERMO_SUPABASE.getSession();
-  if (!session && !isLogin) {
+  if (!session?.user && !isLogin) {
     window.location.href = '/login/';
   }
 })();
