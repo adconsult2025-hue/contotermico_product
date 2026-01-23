@@ -4,8 +4,9 @@ const practicesEmpty = document.getElementById('table-pratiche-empty');
 const newPracticeButton = document.getElementById('btn-new-pratica');
 
 async function loadUser() {
-  if (!window.TERMO_SUPABASE) return;
-  const session = await window.TERMO_SUPABASE.getSession();
+  if (!window.__supabase) return;
+  const { data } = await window.__supabase.auth.getSession();
+  const session = data?.session || null;
   if (who) {
     who.textContent = session?.user?.email || '';
   }
@@ -18,9 +19,9 @@ function formatDate(value) {
 }
 
 async function loadPractices() {
-  if (!practicesBody || !window.TERMO_SUPABASE?.supabase) return;
+  if (!practicesBody || !window.__supabase) return;
   try {
-    const { data, error } = await window.TERMO_SUPABASE.supabase
+    const { data, error } = await window.__supabase
       .from('ct_practices')
       .select()
       .order('created_at', { ascending: false });
@@ -70,7 +71,7 @@ newPracticeButton?.addEventListener('click', () => {
 });
 
 document.getElementById('logout')?.addEventListener('click', async () => {
-  await window.TERMO_SUPABASE.signOut();
+  await window.__supabase?.auth.signOut();
   window.location.href = '/login/';
 });
 

@@ -15,8 +15,12 @@ form?.addEventListener('submit', async (event) => {
   const subjectType = document.getElementById('subjectType')?.value || 'condominio';
 
   try {
+    if (!window.__supabase) {
+      throw new Error('Supabase non disponibile.');
+    }
+
     const { data: sessionData, error: sessionError } =
-      await window.TERMO_SUPABASE.supabase.auth.getSession();
+      await window.__supabase.auth.getSession();
     if (sessionError) {
       throw new Error(sessionError.message || 'Sessione non disponibile.');
     }
@@ -25,7 +29,7 @@ form?.addEventListener('submit', async (event) => {
       throw new Error('Nessuna sessione attiva.');
     }
 
-    const { data, error } = await window.TERMO_SUPABASE.supabase
+    const { data, error } = await window.__supabase
       .from('ct_practices')
       .insert({
         owner_user_id: user.id,

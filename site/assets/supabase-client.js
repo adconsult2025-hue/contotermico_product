@@ -1,32 +1,31 @@
+// Supabase singleton client for TERMO 3.0
+// Requires:
+//  - <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+//  - <script src="/config.js"></script>
+//
+// Exposes: window.__supabase
+
 (function () {
-  const supabaseUrl = window.__TERMO_SUPABASE_URL;
-  const supabaseAnonKey = window.__TERMO_SUPABASE_ANON_KEY;
-  const hasLib = !!window.supabase?.createClient;
+  const url = window.__TERMO_SUPABASE_URL;
+  const anon = window.__TERMO_SUPABASE_ANON_KEY;
 
-  console.log('[supabase] url?', !!supabaseUrl, 'key?', !!supabaseAnonKey, 'lib?', hasLib);
-
-  if (!supabaseUrl || !supabaseAnonKey || !hasLib) {
-    window.__supabase = null;
-    window.__supabaseReady = false;
+  if (!url || !anon) {
+    console.warn('[supabase-client] Missing config in /config.js');
+    return;
+  }
+  if (!window.supabase || !window.supabase.createClient) {
+    console.warn('[supabase-client] supabase-js not loaded');
     return;
   }
 
-  const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
-
-  async function getSession() {
-    const { data } = await supabase.auth.getSession();
-    return data.session;
+  // Create once
+  if (!window.__supabase) {
+    window.__supabase = window.supabase.createClient(url, anon, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+      },
+    });
   }
-
-  async function signIn(email, password) {
-    return supabase.auth.signInWithPassword({ email, password });
-  }
-
-  async function signOut() {
-    return supabase.auth.signOut();
-  }
-
-  window.__supabase = supabase;
-  window.__supabaseReady = true;
-  window.TERMO_SUPABASE = { supabase, getSession, signIn, signOut };
 })();

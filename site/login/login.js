@@ -10,6 +10,7 @@ function getSupabaseFlags() {
     hasUrl: Boolean(window.__TERMO_SUPABASE_URL),
     hasKey: Boolean(window.__TERMO_SUPABASE_ANON_KEY),
     hasLib: Boolean(window.supabase?.createClient),
+    hasClient: Boolean(window.__supabase),
   };
 }
 
@@ -22,21 +23,15 @@ function goApp() {
   window.location.href = '/dashboard/';
 }
 
-async function resolveSession() {
-  if (!window.getSession) return null;
-  const { data, error } = await window.getSession();
-  if (error) {
-    console.warn('Supabase session error', error);
-  }
-  return data?.session || null;
-}
-
 function showSupabaseUnavailable() {
-  const { hasUrl, hasKey, hasLib } = getSupabaseFlags();
-  setStatus(`Supabase non disponibile (url:${hasUrl} key:${hasKey} lib:${hasLib})`, true);
+  const { hasUrl, hasKey, hasLib, hasClient } = getSupabaseFlags();
+  setStatus(
+    `Supabase non disponibile (url:${hasUrl} key:${hasKey} lib:${hasLib} client:${hasClient})`,
+    true
+  );
 }
 
-if (!window.__supabaseReady) {
+if (!window.__supabase) {
   showSupabaseUnavailable();
 }
 
@@ -46,7 +41,7 @@ loginForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   setStatus('accesso in corso...');
 
-  if (!window.__supabaseReady) {
+  if (!window.__supabase) {
     showSupabaseUnavailable();
     return;
   }
@@ -59,7 +54,7 @@ loginForm.addEventListener('submit', async (event) => {
     return;
   }
 
-  const { error } = await window.TERMO_SUPABASE.signIn(email, password);
+  const { error } = await window.__supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     setStatus(error.message || 'errore autenticazione', true);

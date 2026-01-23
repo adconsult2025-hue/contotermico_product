@@ -6,7 +6,7 @@
   <title>TERMO 3.0 · Conferma accesso</title>
   <link rel="stylesheet" href="/style.css" />
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="/.netlify/functions/config"></script>
+  <script src="/config.js"></script>
   <script src="/assets/supabase-client.js"></script>
 </head>
 <body>
@@ -17,20 +17,8 @@
   </main>
 
   <script>
-    async function resolveLogin() {
-      if (!window.__supabaseReady) {
-        window.location.href = '/login/?err=supabase';
-        return;
-      }
-      const session = await window.TERMO_SUPABASE.getSession();
-      if (session) {
-        window.location.href = '/app/';
-      } else {
-        window.location.href = '/login/';
-      }
-    }
-
-    window.addEventListener('DOMContentLoaded', resolveLogin);
+    // Placeholder. (Supabase confirmation is handled by Supabase itself; keep this page for future UX.)
+    setTimeout(() => (window.location.href = '/login/'), 600);
   </script>
 </body>
 </html>

@@ -1,35 +1,28 @@
-(async () => {
-  const isLogin = window.location.pathname.startsWith('/login/');
-
-  if (isLogin) {
-    return;
+// Guard minimale: se non sei loggato -> /login/
+// NB: qui NON facciamo più gate lato function (lo reinseriremo dopo, stabile).
+async function getSessionSafe() {
+  for (let i = 0; i < 20; i++) {
+    if (window.__supabase) break;
+    await new Promise((r) => setTimeout(r, 50));
   }
-
-  const attempts = 8;
-  const intervalMs = 150;
-  let session = null;
-
-  for (let i = 0; i < attempts; i += 1) {
-    if (window.__supabase?.auth) {
-      const { data, error } = await window.__supabase.auth.getSession();
-      if (error) {
-        console.warn('[auth-guard] getSession error', error);
-      }
-      session = data?.session ?? null;
-      if (session?.user) {
-        return;
-      }
-    }
-
-    await new Promise((resolve) => setTimeout(resolve, intervalMs));
+  if (!window.__supabase) return null;
+  try {
+    const { data, error } = await window.__supabase.auth.getSession();
+    if (error) return null;
+    return data?.session || null;
+  } catch {
+    return null;
   }
+}
 
-  if (!window.__supabase?.auth) {
-    console.warn('[auth-guard] supabase client missing on this page');
-    return;
-  }
+async function checkAuth() {
+  const path = window.location.pathname || '';
+  if (path === '/' || path.startsWith('/login')) return;
 
-  if (!session?.user) {
-    window.location.href = '/login/';
-  }
-})();
+  const session = await getSessionSafe();
+  if (!session) window.location.href = '/login/';
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  checkAuth();
+});
