@@ -1,19 +1,31 @@
-const supabase = window.supabase.createClient(
-  window.__TERMO_SUPABASE_URL,
-  window.__TERMO_SUPABASE_ANON_KEY
-);
+(function () {
+  const supabaseUrl = window.__TERMO_SUPABASE_URL;
+  const supabaseAnonKey = window.__TERMO_SUPABASE_ANON_KEY;
+  const hasLib = !!window.supabase?.createClient;
 
-async function getSession() {
-  const { data } = await supabase.auth.getSession();
-  return data.session;
-}
+  console.log('[supabase] url?', !!supabaseUrl, 'key?', !!supabaseAnonKey, 'lib?', hasLib);
 
-async function signIn(email, password) {
-  return supabase.auth.signInWithPassword({ email, password });
-}
+  if (!supabaseUrl || !supabaseAnonKey || !hasLib) {
+    window.__supabaseReady = false;
+    return;
+  }
 
-async function signOut() {
-  return supabase.auth.signOut();
-}
+  const supabase = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
 
-window.TERMO_SUPABASE = { supabase, getSession, signIn, signOut };
+  async function getSession() {
+    const { data } = await supabase.auth.getSession();
+    return data.session;
+  }
+
+  async function signIn(email, password) {
+    return supabase.auth.signInWithPassword({ email, password });
+  }
+
+  async function signOut() {
+    return supabase.auth.signOut();
+  }
+
+  window.__supabase = supabase;
+  window.__supabaseReady = true;
+  window.TERMO_SUPABASE = { supabase, getSession, signIn, signOut };
+})();
