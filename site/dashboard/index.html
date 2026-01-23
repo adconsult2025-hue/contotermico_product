@@ -23,7 +23,7 @@
       </div>
       <nav class="menu">
         <a href="#">Panoramica</a>
-        <a href="#">Pratiche</a>
+        <a href="/ct30/pratiche/new/">Pratiche CT3.0</a>
         <a href="#">Documenti</a>
         <a href="#">Impostazioni</a>
       </nav>
@@ -39,6 +39,35 @@
       <section class="container">
         <h1>Dashboard</h1>
         <p class="muted">Area riservata per la gestione Conto Termico 3.0.</p>
+      </section>
+      <section class="container">
+        <div class="section-header">
+          <div>
+            <h2>Pratiche CT3.0</h2>
+            <p class="muted">Gestisci le pratiche e avvia una nuova lavorazione.</p>
+          </div>
+          <a class="btn inline" href="/ct30/pratiche/new/">Nuova pratica</a>
+        </div>
+        <div class="table-card">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Titolo</th>
+                <th>Stato</th>
+                <th>Creata</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="ctPracticesBody">
+              <tr>
+                <td colspan="4" class="muted">Caricamento pratiche...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div id="ctPracticesEmpty" class="muted small" style="display:none; margin-top:12px;">
+          Nessuna pratica trovata. Usa “Nuova pratica” per iniziare.
+        </div>
       </section>
     </main>
   </div>

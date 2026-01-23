@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TERMO 3.0 · Nuova pratica CT3.0</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="/.netlify/functions/config"></script>
+  <script src="/assets/supabase-client.js"></script>
+  <script defer src="/assets/auth-guard.js"></script>
+  <script defer src="/ct30/pratiche/new/new.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <div class="left">
+        <img src="/IMG/termo-3.0.png" alt="TERMO 3.0">
+        <div class="title">
+          <b>Nuova pratica CT3.0</b>
+          <span>Imposta i dati essenziali</span>
+        </div>
+      </div>
+      <a class="btn inline" href="/dashboard/">Torna alla dashboard</a>
+    </header>
+
+    <main class="app-main">
+      <form id="practiceForm" class="form-grid">
+        <div class="form-field">
+          <label for="title">Titolo pratica</label>
+          <input id="title" name="title" type="text" placeholder="Es. CT3.0 Condominio Rossi" required>
+        </div>
+        <div class="form-field">
+          <label for="subjectType">Tipo soggetto</label>
+          <select id="subjectType" name="subjectType">
+            <option value="">Seleziona...</option>
+            <option value="persona_fisica">Persona fisica</option>
+            <option value="persona_giuridica">Persona giuridica</option>
+            <option value="pubblica_amministrazione">Pubblica amministrazione</option>
+          </select>
+        </div>
+        <div class="form-field" style="grid-column: 1 / -1;">
+          <button type="submit" class="btn">Crea pratica</button>
+          <div id="status" class="status">Inserisci i dati e conferma.</div>
+        </div>
+      </form>
+    </main>
+  </div>
+</body>
+</html>
