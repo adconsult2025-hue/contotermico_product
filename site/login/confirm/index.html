@@ -18,6 +18,10 @@
 
   <script>
     async function resolveLogin() {
+      if (!window.__supabaseReady) {
+        window.location.href = '/login/?err=supabase';
+        return;
+      }
       const session = await window.TERMO_SUPABASE.getSession();
       if (session) {
         window.location.href = '/app/';
@@ -26,7 +30,7 @@
       }
     }
 
-    resolveLogin();
+    window.addEventListener('DOMContentLoaded', resolveLogin);
   </script>
 </body>
 </html>

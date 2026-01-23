@@ -5,6 +5,14 @@ const emailInput = document.getElementById('email');
 const passwordInput = document.getElementById('password');
 const btnGoApp = document.getElementById('btnGoApp');
 
+function getSupabaseFlags() {
+  return {
+    hasUrl: Boolean(window.__TERMO_SUPABASE_URL),
+    hasKey: Boolean(window.__TERMO_SUPABASE_ANON_KEY),
+    hasLib: Boolean(window.supabase?.createClient),
+  };
+}
+
 function setStatus(text, isErr = false) {
   statusEl.classList.toggle('error', Boolean(isErr));
   statusEl.querySelector('strong').textContent = text;
@@ -23,14 +31,23 @@ async function resolveSession() {
   return data?.session || null;
 }
 
+function showSupabaseUnavailable() {
+  const { hasUrl, hasKey, hasLib } = getSupabaseFlags();
+  setStatus(`Supabase non disponibile (url:${hasUrl} key:${hasKey} lib:${hasLib})`, true);
+}
+
+if (!window.__supabaseReady) {
+  showSupabaseUnavailable();
+}
+
 btnGoApp.addEventListener('click', goApp);
 
 loginForm.addEventListener('submit', async (event) => {
   event.preventDefault();
   setStatus('accesso in corso...');
 
-  if (!window.TERMO_SUPABASE) {
-    setStatus('supabase non disponibile', true);
+  if (!window.__supabaseReady) {
+    showSupabaseUnavailable();
     return;
   }
 
