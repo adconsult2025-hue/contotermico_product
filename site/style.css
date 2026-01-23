@@ -90,10 +90,12 @@ body{
   place-items:center;
   overflow:hidden;
 }
+/* Ridimensiona il logo nella sidebar e nell’header */
+.logo img,
 .brand-logo img{
-  width:46px;
-  height:46px;
-  object-fit:contain;
+  max-width: 100px;   /* Imposta una larghezza massima */
+  height: auto;       /* Mantiene le proporzioni */
+  object-fit: contain;
 }
 .brand-name{
   display:flex;
