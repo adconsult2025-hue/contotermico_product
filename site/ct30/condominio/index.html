@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TERMO 3.0 · Condominio</title>
+  <link rel="stylesheet" href="/style.css" />
+  <script src="/config.js"></script>
+  <script src="/supabase-client.js"></script>
+  <script defer src="/assets/auth-guard.js"></script>
+  <script defer src="/ct30/condominio/condominio.js"></script>
+</head>
+<body class="app-shell">
+  <header class="app-header">
+    <div class="left">
+      <img src="/IMG/termo-3.0.png" alt="TERMO 3.0" />
+      <div class="title">
+        <b>TERMO 3.0</b>
+        <span>Condominio · Anagrafica</span>
+      </div>
+    </div>
+    <div class="row-actions">
+      <a class="btn secondary small" href="/dashboard/">Dashboard</a>
+      <button class="btn secondary small" id="logoutBtn">Logout</button>
+    </div>
+  </header>
+
+  <main class="app-main" style="width:100%;max-width:1100px;margin:0 auto;">
+    <div class="panel">
+      <div class="row-actions" style="justify-content:space-between;">
+        <div>
+          <div style="font-size:18px;font-weight:700;">Anagrafica Condominio</div>
+          <div class="muted" id="subStatus">Crea o modifica un condominio.</div>
+        </div>
+        <div class="row-actions">
+          <button class="btn small secondary" id="btnNew">Nuovo</button>
+          <button class="btn small" id="btnSave">Salva</button>
+        </div>
+      </div>
+
+      <div class="tabs" style="margin-top:14px;">
+        <div class="tab active" data-tab="anagrafica">Anagrafica</div>
+        <div class="tab" data-tab="unita">Unità</div>
+        <div class="tab" data-tab="import">Import CSV</div>
+      </div>
+
+      <section id="tab-anagrafica">
+        <div class="grid-2">
+          <div class="field">
+            <label>Nome Condominio *</label>
+            <input id="name" placeholder="Es. Condominio Via Roma 12" />
+          </div>
+          <div class="field">
+            <label>Codice Fiscale</label>
+            <input id="fiscal_code" placeholder="(opzionale)" />
+          </div>
+          <div class="field">
+            <label>Indirizzo</label>
+            <input id="address" placeholder="Via / Piazza, civico" />
+          </div>
+          <div class="field">
+            <label>Città / Provincia / CAP</label>
+            <div class="grid-2" style="grid-template-columns: 1fr 120px;">
+              <input id="city" placeholder="Città" />
+              <input id="province" placeholder="PR" />
+            </div>
+            <div style="margin-top:10px;">
+              <input id="cap" placeholder="CAP" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Amministratore</label>
+            <input id="administrator_name" placeholder="Nome e Cognome" />
+          </div>
+          <div class="field">
+            <label>Contatti amministratore</label>
+            <div class="grid-2">
+              <input id="administrator_email" placeholder="Email" />
+              <input id="administrator_phone" placeholder="Telefono" />
+            </div>
+          </div>
+        </div>
+        <div class="field" style="margin-top:12px;">
+          <label>Note</label>
+          <textarea id="notes" placeholder="Note operative..."></textarea>
+        </div>
+      </section>
+
+      <section id="tab-unita" style="display:none;">
+        <div class="row-actions" style="justify-content:space-between;margin-bottom:10px;">
+          <div class="muted">Unità immobiliari collegate al condominio selezionato.</div>
+          <button class="btn small" id="btnAddUnit">Aggiungi unità</button>
+        </div>
+        <table class="table" id="unitsTable">
+          <thead>
+            <tr>
+              <th>Codice</th>
+              <th>Tipo</th>
+              <th>mq</th>
+              <th>Millesimi</th>
+              <th>POD</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="unitsTbody">
+            <tr><td colspan="6" class="muted">Nessuna unità. Clicca “Aggiungi unità”.</td></tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section id="tab-import" style="display:none;">
+        <div class="muted" style="margin-bottom:10px;">
+          Scarica il template CSV, compilalo e ricaricalo per creare le unità del condominio.
+        </div>
+        <div class="row-actions" style="margin-bottom:12px;">
+          <button class="btn small secondary" id="btnDownloadTemplate">Scarica template CSV</button>
+          <input type="file" id="fileCsv" accept=".csv,text/csv" />
+          <button class="btn small" id="btnImportCsv">Importa CSV</button>
+        </div>
+        <div class="muted" id="importStatus">In attesa di file CSV.</div>
+      </section>
+
+      <div class="muted" style="margin-top:12px;">
+        ID corrente: <span id="currentId">—</span>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    document.getElementById('logoutBtn').addEventListener('click', async () => {
+      if (window.__supabase?.auth) await window.__supabase.auth.signOut();
+      window.location.href = '/login/';
+    });
+  </script>
+</body>
+</html>
