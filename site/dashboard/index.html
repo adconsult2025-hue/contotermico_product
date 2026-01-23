@@ -43,29 +43,29 @@
       <section class="container">
         <div class="section-header">
           <div>
-            <h2>Pratiche CT3.0</h2>
-            <p class="muted">Gestisci le pratiche e avvia una nuova lavorazione.</p>
+            <h2>Pratiche CT 3.0</h2>
+            <p class="muted">Consulta le pratiche in corso e avvia una nuova pratica.</p>
           </div>
-          <a class="btn inline" href="/ct30/pratiche/new/">Nuova pratica</a>
+          <button id="btn-new-pratica" class="btn inline" type="button">Nuova pratica</button>
         </div>
         <div class="table-card">
-          <table class="data-table">
+          <table id="table-pratiche" class="data-table">
             <thead>
               <tr>
                 <th>Titolo</th>
+                <th>Soggetto</th>
                 <th>Stato</th>
-                <th>Creata</th>
-                <th></th>
+                <th>Data</th>
               </tr>
             </thead>
-            <tbody id="ctPracticesBody">
+            <tbody id="table-pratiche-body">
               <tr>
                 <td colspan="4" class="muted">Caricamento pratiche...</td>
               </tr>
             </tbody>
           </table>
         </div>
-        <div id="ctPracticesEmpty" class="muted small" style="display:none; margin-top:12px;">
+        <div id="table-pratiche-empty" class="muted small" style="display:none; margin-top:12px;">
           Nessuna pratica trovata. Usa “Nuova pratica” per iniziare.
         </div>
       </section>

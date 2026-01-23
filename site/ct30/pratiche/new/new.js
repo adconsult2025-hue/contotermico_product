@@ -1,20 +1,6 @@
 const form = document.getElementById('practiceForm');
 const statusEl = document.getElementById('status');
 
-async function fetchWithAuth(url, options = {}) {
-  const session = await window.TERMO_SUPABASE.getSession();
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(options.headers || {}),
-  };
-
-  if (session?.access_token) {
-    headers.Authorization = `Bearer ${session.access_token}`;
-  }
-
-  return fetch(url, { ...options, headers });
-}
-
 function setStatus(message, isError = false) {
   if (!statusEl) return;
   statusEl.textContent = message;
@@ -25,21 +11,35 @@ form?.addEventListener('submit', async (event) => {
   event.preventDefault();
   setStatus('Creazione pratica in corso...');
 
-  const title = document.getElementById('title')?.value || '';
-  const subjectType = document.getElementById('subjectType')?.value || 'CONDOMINIO';
+  const title = document.getElementById('title')?.value.trim() || '';
+  const subjectType = document.getElementById('subjectType')?.value || 'condominio';
 
   try {
-    const response = await fetchWithAuth('/.netlify/functions/ct-practices-create', {
-      method: 'POST',
-      body: JSON.stringify({ title, subject_type: subjectType }),
-    });
-
-    const payload = await response.json();
-    if (!payload.ok) {
-      throw new Error(payload.error || 'Errore in creazione.');
+    const { data: sessionData, error: sessionError } =
+      await window.TERMO_SUPABASE.supabase.auth.getSession();
+    if (sessionError) {
+      throw new Error(sessionError.message || 'Sessione non disponibile.');
+    }
+    const user = sessionData?.session?.user;
+    if (!user) {
+      throw new Error('Nessuna sessione attiva.');
     }
 
-    window.location.href = `/ct30/pratiche/detail/?id=${payload.id}`;
+    const { data, error } = await window.TERMO_SUPABASE.supabase
+      .from('ct_practices')
+      .insert({
+        owner_user_id: user.id,
+        title,
+        subject_type: subjectType,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(error.message || 'Errore in creazione.');
+    }
+
+    window.location.href = `/ct30/pratiche/detail/?id=${data.id}`;
   } catch (error) {
     setStatus(error.message, true);
   }
