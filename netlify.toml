@@ -6,3 +6,8 @@
   from = "/login/confirm/*"
   to = "/login/confirm/"
   status = 200
+
+[[redirects]]
+  from = "/config.js"
+  to = "/.netlify/functions/config"
+  status = 200
