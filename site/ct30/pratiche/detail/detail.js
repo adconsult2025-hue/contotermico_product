@@ -21,10 +21,17 @@ async function loadPractice() {
     return;
   }
 
-  if (!window.__supabase) return;
+  const session = await window.termoGetSession?.();
+  if (!session?.user) {
+    window.location.href = '/login/';
+    return;
+  }
+
+  const supa = window.__supabase;
+  if (!supa) return;
 
   try {
-    const { data, error } = await window.__supabase
+    const { data, error } = await supa
       .from('ct_practices')
       .select('*')
       .eq('id', practiceId)

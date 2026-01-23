@@ -20,7 +20,7 @@
 
   // Create once
   if (!window.__supabase) {
-    window.__supabase = window.supabase.createClient(url, anon, {
+    window.__supabase = supabase.createClient(url, anon, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
@@ -28,4 +28,7 @@
       },
     });
   }
+
+  window.termoGetSession = async () => (await window.__supabase.auth.getSession()).data.session;
+  window.termoGetUser = async () => (await window.__supabase.auth.getUser()).data.user;
 })();
