@@ -3,6 +3,9 @@ const practiceMetaEl = document.getElementById('practiceMeta');
 const practiceStatusEl = document.getElementById('practiceStatus');
 const subjectTypeEl = document.getElementById('subjectType');
 const practiceIdEl = document.getElementById('practiceId');
+const condoNameEl = document.getElementById('condoName');
+const condoAddressEl = document.getElementById('condoAddress');
+const condoCityEl = document.getElementById('condoCity');
 const documentsBody = document.getElementById('documentsBody');
 const uploadForm = document.getElementById('uploadForm');
 const uploadStatus = document.getElementById('uploadStatus');
@@ -85,13 +88,22 @@ async function loadPractice() {
       practiceMetaEl.textContent = `Stato: ${practice.status || 'draft'} · Creata ${formatDate(practice.created_at)}`;
     }
     if (practiceStatusEl) {
-      practiceStatusEl.textContent = 'Dati anagrafica disponibili per la pratica.';
+      practiceStatusEl.textContent = 'Dati anagrafica disponibili (salvataggio step 2).';
       practiceStatusEl.classList.remove('error');
     }
 
     if (practiceIdEl) practiceIdEl.value = practice.id || practiceId;
     if (subjectTypeEl) {
       subjectTypeEl.value = practice.subject_type || payload.subject?.data?.subject_type || '';
+    }
+    if (condoNameEl) {
+      condoNameEl.value = payload.subject?.data?.denominazione || '';
+    }
+    if (condoAddressEl) {
+      condoAddressEl.value = payload.subject?.data?.indirizzo || '';
+    }
+    if (condoCityEl) {
+      condoCityEl.value = payload.subject?.data?.comune || '';
     }
 
     renderDocuments(payload.documents || []);
@@ -122,6 +134,7 @@ uploadForm?.addEventListener('submit', async (event) => {
       body: JSON.stringify({
         practice_id: practiceId,
         filename: file.name,
+        content_type: file.type || 'application/octet-stream',
       }),
     });
     const uploadPayload = await uploadResponse.json();
@@ -130,7 +143,7 @@ uploadForm?.addEventListener('submit', async (event) => {
       throw new Error(uploadPayload.error || 'Errore nella generazione URL.');
     }
 
-    const uploadResult = await fetch(uploadPayload.uploadUrl, {
+    const uploadResult = await fetch(uploadPayload.signedUrl, {
       method: 'PUT',
       headers: {
         'Content-Type': file.type || 'application/octet-stream',
@@ -147,8 +160,9 @@ uploadForm?.addEventListener('submit', async (event) => {
       body: JSON.stringify({
         practice_id: practiceId,
         filename: file.name,
-        storage_path: uploadPayload.storagePath,
+        path: uploadPayload.path,
         kind: kindInput?.value || '',
+        content_type: file.type || 'application/octet-stream',
       }),
     });
     const attachPayload = await attachResponse.json();

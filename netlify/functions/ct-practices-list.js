@@ -1,10 +1,13 @@
-const { getAdminClient, requireUser } = require("./_supabase");
+const { getAdminClient, requireUser, corsHeaders } = require("./_supabase");
 
 exports.handler = async (event) => {
+  if (event.httpMethod === "OPTIONS") {
+    return { statusCode: 200, headers: corsHeaders, body: "" };
+  }
   if (event.httpMethod !== "GET") {
     return {
       statusCode: 405,
-      headers: { "Content-Type": "application/json; charset=utf-8" },
+      headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" },
       body: JSON.stringify({ ok: false, error: "Metodo non consentito." }),
     };
   }
@@ -15,7 +18,7 @@ exports.handler = async (event) => {
 
     const { data, error } = await supabase
       .from("ct_practices")
-      .select("id,title,status,created_at")
+      .select("id,title,subject_type,status,created_at")
       .eq("owner_user_id", user.id)
       .order("created_at", { ascending: false });
 
@@ -25,13 +28,13 @@ exports.handler = async (event) => {
 
     return {
       statusCode: 200,
-      headers: { "Content-Type": "application/json; charset=utf-8" },
+      headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" },
       body: JSON.stringify({ ok: true, practices: data || [] }),
     };
   } catch (error) {
     return {
       statusCode: error.statusCode || 500,
-      headers: { "Content-Type": "application/json; charset=utf-8" },
+      headers: { ...corsHeaders, "Content-Type": "application/json; charset=utf-8" },
       body: JSON.stringify({ ok: false, error: error.message || "Errore imprevisto." }),
     };
   }

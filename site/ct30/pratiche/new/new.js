@@ -26,7 +26,7 @@ form?.addEventListener('submit', async (event) => {
   setStatus('Creazione pratica in corso...');
 
   const title = document.getElementById('title')?.value || '';
-  const subjectType = document.getElementById('subjectType')?.value || '';
+  const subjectType = document.getElementById('subjectType')?.value || 'CONDOMINIO';
 
   try {
     const response = await fetchWithAuth('/.netlify/functions/ct-practices-create', {
