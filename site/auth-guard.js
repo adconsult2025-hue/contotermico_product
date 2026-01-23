@@ -5,16 +5,18 @@
     return;
   }
 
-  const timeoutMs = 2500;
-  const intervalMs = 250;
-  const start = Date.now();
+  const attempts = 8;
+  const intervalMs = 150;
   let session = null;
 
-  while (Date.now() - start < timeoutMs) {
-    if (window.__supabaseReady && window.__supabase) {
-      const { data } = await window.__supabase.auth.getSession();
+  for (let i = 0; i < attempts; i += 1) {
+    if (window.__supabase?.auth) {
+      const { data, error } = await window.__supabase.auth.getSession();
+      if (error) {
+        console.warn('[auth-guard] getSession error', error);
+      }
       session = data?.session ?? null;
-      if (session) {
+      if (session?.user) {
         return;
       }
     }
@@ -22,7 +24,12 @@
     await new Promise((resolve) => setTimeout(resolve, intervalMs));
   }
 
-  if (!session) {
+  if (!window.__supabase?.auth) {
+    console.warn('[auth-guard] supabase client missing on this page');
+    return;
+  }
+
+  if (!session?.user) {
     window.location.href = '/login/';
   }
 })();
