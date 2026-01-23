@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="it">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>TERMO 3.0 · Dettaglio pratica CT3.0</title>
-  <link rel="stylesheet" href="/style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TERMO 3.0 · Dettaglio pratica</title>
+  <link rel="stylesheet" href="/style.css" />
   <script src="/config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script defer src="/assets/supabase-client.js"></script>
@@ -15,39 +15,39 @@
   <div class="app-shell">
     <header class="app-header">
       <div class="left">
-        <img src="/IMG/termo-3.0.png" alt="TERMO 3.0">
+        <img src="/IMG/termo-3.0.png" alt="TERMO 3.0" />
         <div class="title">
-          <b>Dettaglio pratica CT3.0</b>
-          <span class="muted">Consulta i dati principali della pratica</span>
+          <b>TERMO 3.0</b>
+          <span>Pratica CT 3.0 · Dettaglio</span>
         </div>
       </div>
-      <div style="display:flex; gap:10px;">
-        <a class="btn inline" href="/ct30/pratiche/new/">Nuova pratica</a>
-        <a class="btn inline secondary" href="/dashboard/">Dashboard</a>
+      <div class="row" style="gap:10px;">
+        <a class="btn secondary" style="width:auto; padding:10px 12px; text-decoration:none;" href="/dashboard/">Dashboard</a>
+        <button class="btn secondary" id="logoutBtn" style="width:auto; padding:10px 12px;">Logout</button>
       </div>
     </header>
 
     <main class="app-main">
-      <div id="practiceStatus" class="note">Caricamento dati pratica...</div>
-      <div class="form-grid" style="margin-top:16px;">
-        <div class="form-field">
-          <label>Titolo</label>
-          <input id="practiceTitle" type="text" readonly>
-        </div>
-        <div class="form-field">
-          <label>Tipo soggetto</label>
-          <input id="practiceSubject" type="text" readonly>
-        </div>
-        <div class="form-field">
-          <label>Stato</label>
-          <input id="practiceState" type="text" readonly>
-        </div>
-        <div class="form-field">
-          <label>Data creazione</label>
-          <input id="practiceCreated" type="text" readonly>
+      <div class="row" style="justify-content:space-between; align-items:center;">
+        <div>
+          <h1 style="margin:0;">Dettaglio pratica</h1>
+          <div class="muted small" id="status">Caricamento…</div>
         </div>
       </div>
+
+      <div id="tabs" class="tabs" style="margin-top:14px;"></div>
+
+      <section id="pane-soggetto" data-pane="soggetto" style="margin-top:14px;"></section>
+      <section id="pane-unita" data-pane="unita" style="margin-top:14px; display:none;"></section>
+      <section id="pane-interventi" data-pane="interventi" style="margin-top:14px; display:none;"></section>
     </main>
   </div>
+
+  <script>
+    document.getElementById('logoutBtn')?.addEventListener('click', async () => {
+      if (window.__supabase) await window.__supabase.auth.signOut();
+      window.location.href = '/login/';
+    });
+  </script>
 </body>
 </html>
