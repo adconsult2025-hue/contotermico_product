@@ -6,6 +6,7 @@
   console.log('[supabase] url?', !!supabaseUrl, 'key?', !!supabaseAnonKey, 'lib?', hasLib);
 
   if (!supabaseUrl || !supabaseAnonKey || !hasLib) {
+    window.__supabase = null;
     window.__supabaseReady = false;
     return;
   }
