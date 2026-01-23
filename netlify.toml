@@ -9,5 +9,6 @@
 
 [[redirects]]
   from = "/config.js"
-  to = "/.netlify/functions/config"
+  to = "/.netlify/functions/config-js"
   status = 200
+  force = true
