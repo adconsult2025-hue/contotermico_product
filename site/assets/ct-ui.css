@@ -1,0 +1,142 @@
+/* =========================================================
+   CT UI – Professional grid + alignment
+   - page centered container
+   - clean 2-col form grid
+   - table styling (for units list)
+   - textarea notes resizable
+   ========================================================= */
+
+:root{
+  --ct-max-w: 1180px;
+  --ct-pad: 18px;
+  --ct-gap: 14px;
+  --ct-radius: 16px;
+  --ct-border: rgba(255,255,255,.12);
+  --ct-bg-card: rgba(255,255,255,.04);
+  --ct-bg-head: rgba(0,0,0,.26);
+  --ct-field-bg: rgba(0,0,0,.22);
+}
+
+/* Centered page */
+.ct-page{ width:100%; display:flex; justify-content:center; }
+.ct-container{ width:100%; max-width:var(--ct-max-w); padding:var(--ct-pad); }
+
+/* Section card */
+.ct-section{
+  background: var(--ct-bg-card);
+  border: 1px solid var(--ct-border);
+  border-radius: var(--ct-radius);
+  padding: 16px;
+  margin: 14px 0;
+}
+.ct-section__head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.ct-section__title{ margin:0; font-size: 20px; letter-spacing: .2px; }
+.ct-section__sub{ opacity:.82; font-size: 13px; margin-top: 2px; }
+
+/* Form grid */
+.ct-form{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ct-gap);
+  align-items:end;
+  margin-top: 12px;
+}
+.ct-form--3{
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.ct-field{
+  display:flex;
+  flex-direction:column;
+  gap: 7px;
+}
+.ct-field label{
+  font-size: 12px;
+  opacity: .86;
+}
+.ct-field input,
+.ct-field select,
+.ct-field textarea{
+  width: 100%;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,.14);
+  background: var(--ct-field-bg);
+  color: inherit;
+  padding: 11px 12px;
+  font-size: 14px;
+  line-height: 1.25;
+  transition: transform .12s ease, font-size .12s ease, padding .12s ease, border-color .12s ease;
+}
+
+/* Notes textarea: resizable + comfortable */
+.ct-field textarea{
+  min-height: 96px;
+  resize: vertical;
+}
+
+/* Filled state: slightly larger and clearer */
+.ct-field.is-filled input,
+.ct-field.is-filled select,
+.ct-field.is-filled textarea{
+  font-size: 16px;
+  padding: 13px 14px;
+  border-color: rgba(255,255,255,.24);
+  transform: translateY(-1px);
+}
+
+/* Full width row */
+.ct-span-2{ grid-column: 1 / -1; }
+
+/* Buttons row */
+.ct-actions-row{
+  grid-column: 1 / -1;
+  display:flex;
+  justify-content:flex-end;
+  gap: 10px;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+/* Table */
+.ct-table-wrap{
+  width: 100%;
+  overflow: auto;
+  border-radius: var(--ct-radius);
+  border: 1px solid var(--ct-border);
+  margin-top: 14px;
+}
+.ct-table{
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 860px;
+}
+.ct-table thead th{
+  position: sticky;
+  top: 0;
+  background: var(--ct-bg-head);
+  backdrop-filter: blur(6px);
+  text-align: left;
+  font-weight: 600;
+  padding: 12px 12px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--ct-border);
+}
+.ct-table tbody td{
+  padding: 11px 12px;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  vertical-align: middle;
+  font-size: 14px;
+}
+.ct-table tbody tr:hover{ background: rgba(255,255,255,.03); }
+.ct-table td.ct-actions{ white-space: nowrap; text-align: right; }
+
+@media (max-width: 980px){
+  .ct-form{ grid-template-columns: 1fr; }
+  .ct-form--3{ grid-template-columns: 1fr; }
+  .ct-table{ min-width: 760px; }
+}

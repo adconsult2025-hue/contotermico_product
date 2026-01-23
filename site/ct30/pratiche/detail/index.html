@@ -5,10 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>TERMO 3.0 · Dettaglio pratica</title>
   <link rel="stylesheet" href="/style.css" />
+  <link rel="stylesheet" href="/assets/ct-ui.css" />
   <script src="/config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script defer src="/assets/supabase-client.js"></script>
   <script defer src="/assets/auth-guard.js"></script>
+  <script defer src="/assets/ct-ui.js"></script>
   <script defer src="/ct30/pratiche/detail/detail.js"></script>
 </head>
 <body>
@@ -28,18 +30,22 @@
     </header>
 
     <main class="app-main">
-      <div class="row" style="justify-content:space-between; align-items:center;">
-        <div>
-          <h1 style="margin:0;">Dettaglio pratica</h1>
-          <div class="muted small" id="status">Caricamento…</div>
+      <div class="ct-page">
+        <div class="ct-container">
+          <div class="row" style="justify-content:space-between; align-items:center;">
+            <div>
+              <h1 style="margin:0;">Dettaglio pratica</h1>
+              <div class="muted small" id="status">Caricamento…</div>
+            </div>
+          </div>
+
+          <div id="tabs" class="tabs" style="margin-top:14px;"></div>
+
+          <section id="pane-soggetto" data-pane="soggetto" style="margin-top:14px;"></section>
+          <section id="pane-unita" data-pane="unita" style="margin-top:14px; display:none;"></section>
+          <section id="pane-interventi" data-pane="interventi" style="margin-top:14px; display:none;"></section>
         </div>
       </div>
-
-      <div id="tabs" class="tabs" style="margin-top:14px;"></div>
-
-      <section id="pane-soggetto" data-pane="soggetto" style="margin-top:14px;"></section>
-      <section id="pane-unita" data-pane="unita" style="margin-top:14px; display:none;"></section>
-      <section id="pane-interventi" data-pane="interventi" style="margin-top:14px; display:none;"></section>
     </main>
   </div>
 

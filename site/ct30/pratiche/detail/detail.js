@@ -107,24 +107,50 @@ function renderSubjectForm(subject) {
   const pane = $('#pane-soggetto');
   const d = subject?.data || {};
   pane.innerHTML = `
-    <div class="panel">
-      <h2>Anagrafica Condominio</h2>
-      <div class="grid2">
-        <label>Denominazione<input id="s_den" value="${esc(d.denominazione)}" /></label>
-        <label>Codice Fiscale<input id="s_cf" value="${esc(d.cf)}" /></label>
-        <label>Indirizzo<input id="s_ind" value="${esc(d.indirizzo)}" /></label>
-        <label>Comune<input id="s_com" value="${esc(d.comune)}" /></label>
-        <label>Provincia<input id="s_prov" value="${esc(d.provincia)}" /></label>
+    <div class="panel ct-section">
+      <div class="ct-section__head">
+        <h2 class="ct-section__title">Anagrafica Condominio</h2>
+      </div>
+      <div class="ct-form">
+        <div class="ct-field">
+          <label for="s_den">Denominazione</label>
+          <input id="s_den" value="${esc(d.denominazione)}" />
+        </div>
+        <div class="ct-field">
+          <label for="s_cf">Codice Fiscale</label>
+          <input id="s_cf" value="${esc(d.cf)}" />
+        </div>
+        <div class="ct-field">
+          <label for="s_ind">Indirizzo</label>
+          <input id="s_ind" value="${esc(d.indirizzo)}" />
+        </div>
+        <div class="ct-field">
+          <label for="s_com">Comune</label>
+          <input id="s_com" value="${esc(d.comune)}" />
+        </div>
+        <div class="ct-field">
+          <label for="s_prov">Provincia</label>
+          <input id="s_prov" value="${esc(d.provincia)}" />
+        </div>
       </div>
       <h3 style="margin-top:16px;">Amministratore</h3>
-      <div class="grid3">
-        <label>Nome<input id="s_adm_nome" value="${esc(d.amministratore?.nome)}" /></label>
-        <label>Email<input id="s_adm_email" value="${esc(d.amministratore?.email)}" /></label>
-        <label>Telefono<input id="s_adm_tel" value="${esc(d.amministratore?.tel)}" /></label>
+      <div class="ct-form ct-form--3">
+        <div class="ct-field">
+          <label for="s_adm_nome">Nome</label>
+          <input id="s_adm_nome" value="${esc(d.amministratore?.nome)}" />
+        </div>
+        <div class="ct-field">
+          <label for="s_adm_email">Email</label>
+          <input id="s_adm_email" value="${esc(d.amministratore?.email)}" />
+        </div>
+        <div class="ct-field">
+          <label for="s_adm_tel">Telefono</label>
+          <input id="s_adm_tel" value="${esc(d.amministratore?.tel)}" />
+        </div>
       </div>
-      <div class="row" style="margin-top:14px; gap:10px;">
+      <div class="ct-actions-row">
+        <span class="muted" id="subjectSavedHint" style="margin-right:auto;"></span>
         <button class="btn" id="btnSaveSubject" style="width:auto;">Salva soggetto</button>
-        <span class="muted" id="subjectSavedHint"></span>
       </div>
     </div>
   `;
@@ -172,9 +198,9 @@ async function loadUnits(practiceId) {
 
 function renderUnits(paneEl, units, practiceId, uid) {
   paneEl.innerHTML = `
-    <div class="panel">
-      <div class="row" style="justify-content:space-between; align-items:center;">
-        <h2>Unità</h2>
+    <div class="panel ct-section">
+      <div class="ct-section__head">
+        <h2 class="ct-section__title">Unità</h2>
         <button class="btn secondary" id="btnAddUnit" style="width:auto;">Aggiungi unità</button>
       </div>
       <div class="muted small" style="margin-top:6px;">Tipologie: PA (100%), Uffici (65%), Residenziale, Altro.</div>
@@ -185,21 +211,34 @@ function renderUnits(paneEl, units, practiceId, uid) {
       <div id="unitsList" style="margin-top:10px;"></div>
 
       <div id="unitForm" style="display:none; margin-top:14px;">
-        <div class="grid2">
-          <label>Codice unità<input id="unit_code" placeholder="es. INT. 3 / Scala A - 2°p" /></label>
-          <label>Tipo unità
+        <div class="ct-form">
+          <div class="ct-field">
+            <label for="unit_code">Codice unità</label>
+            <input id="unit_code" placeholder="es. INT. 3 / Scala A - 2°p" />
+          </div>
+          <div class="ct-field">
+            <label for="unit_type">Tipo unità</label>
             <select id="unit_type">
               <option value="pa">PA</option>
               <option value="ufficio">Ufficio</option>
               <option value="residenziale" selected>Residenziale</option>
               <option value="altro">Altro</option>
             </select>
-          </label>
-          <label>Millesimi<input id="unit_millesimi" type="number" step="0.01" value="0" /></label>
-          <label>% Ammissibile<input id="unit_eligible" type="number" step="0.01" placeholder="es. 100 / 65 / 0" /></label>
-          <label>Note<input id="unit_notes" placeholder="Note facoltative" /></label>
+          </div>
+          <div class="ct-field">
+            <label for="unit_millesimi">Millesimi</label>
+            <input id="unit_millesimi" type="number" step="0.01" value="0" />
+          </div>
+          <div class="ct-field">
+            <label for="unit_eligible">% Ammissibile</label>
+            <input id="unit_eligible" type="number" step="0.01" placeholder="es. 100 / 65 / 0" />
+          </div>
+          <div class="ct-field ct-span-2">
+            <label for="unit_notes">Note</label>
+            <textarea id="unit_notes" placeholder="Note facoltative"></textarea>
+          </div>
         </div>
-        <div class="row" style="gap:10px; margin-top:12px;">
+        <div class="ct-actions-row">
           <button class="btn primary" id="btnSaveUnit" style="width:auto;">Salva unità</button>
           <button class="btn secondary" id="btnCancelUnit" style="width:auto;">Annulla</button>
         </div>
@@ -279,9 +318,9 @@ async function loadInterventions(practiceId) {
 
 function renderInterventions(paneEl, rows, practiceId, uid) {
   paneEl.innerHTML = `
-    <div class="panel">
-      <div class="row" style="justify-content:space-between; align-items:center;">
-        <h2>Interventi</h2>
+    <div class="panel ct-section">
+      <div class="ct-section__head">
+        <h2 class="ct-section__title">Interventi</h2>
         <button class="btn secondary" id="btnAddInt" style="width:auto;">Aggiungi intervento</button>
       </div>
       <div class="muted small" style="margin-top:6px;">Minimo: scegli un codice (PDC / FV_PDC / INVOLUCRO). I parametri tecnici li completiamo dopo.</div>
@@ -292,14 +331,29 @@ function renderInterventions(paneEl, rows, practiceId, uid) {
       <div id="intList" style="margin-top:10px;"></div>
 
       <div id="intForm" style="display:none; margin-top:14px;">
-        <div class="grid2">
-          <label>Codice<input id="int_code" placeholder="es. PDC, FV_PDC, INVOLUCRO" /></label>
-          <label>Titolo<input id="int_title" placeholder="Titolo o descrizione breve" /></label>
-          <label>Valore<input id="int_main" type="number" step="0.01" value="0" /></label>
-          <label>Unità<input id="int_unit" placeholder="kW / m2 / kWh" /></label>
-          <label>Costi ammissibili (€)<input id="int_cost" type="number" step="0.01" value="0" /></label>
+        <div class="ct-form">
+          <div class="ct-field">
+            <label for="int_code">Codice</label>
+            <input id="int_code" placeholder="es. PDC, FV_PDC, INVOLUCRO" />
+          </div>
+          <div class="ct-field">
+            <label for="int_title">Titolo</label>
+            <input id="int_title" placeholder="Titolo o descrizione breve" />
+          </div>
+          <div class="ct-field">
+            <label for="int_main">Valore</label>
+            <input id="int_main" type="number" step="0.01" value="0" />
+          </div>
+          <div class="ct-field">
+            <label for="int_unit">Unità</label>
+            <input id="int_unit" placeholder="kW / m2 / kWh" />
+          </div>
+          <div class="ct-field">
+            <label for="int_cost">Costi ammissibili (€)</label>
+            <input id="int_cost" type="number" step="0.01" value="0" />
+          </div>
         </div>
-        <div class="row" style="gap:10px; margin-top:12px;">
+        <div class="ct-actions-row">
           <button class="btn primary" id="btnSaveInt" style="width:auto;">Salva intervento</button>
           <button class="btn secondary" id="btnCancelInt" style="width:auto;">Annulla</button>
         </div>

@@ -5,10 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>TERMO 3.0 · Nuova pratica CT3.0</title>
   <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/assets/ct-ui.css">
   <script src="/config.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script defer src="/assets/supabase-client.js"></script>
   <script defer src="/assets/auth-guard.js"></script>
+  <script defer src="/assets/ct-ui.js"></script>
   <script defer src="/ct30/pratiche/new/new.js"></script>
 </head>
 <body>
@@ -25,23 +27,29 @@
     </header>
 
     <main class="app-main">
-      <form id="practiceForm" class="form-grid">
-        <div class="form-field">
+      <div class="ct-page">
+        <div class="ct-container">
+          <section class="ct-section">
+            <form id="practiceForm" class="form-grid ct-form">
+              <div class="form-field ct-field">
           <label for="title">Titolo pratica</label>
           <input id="title" name="title" type="text" placeholder="Es. CT3.0 Condominio Rossi" required>
-        </div>
-        <div class="form-field">
+              </div>
+              <div class="form-field ct-field">
           <label for="subjectType">Tipo soggetto</label>
           <select id="subjectType" name="subjectType">
             <option value="condominio" selected>Condominio</option>
             <option value="" disabled>Privati (in arrivo)</option>
           </select>
+              </div>
+              <div class="ct-actions-row">
+                <div id="status" class="status" style="margin-right:auto;">Inserisci i dati e conferma.</div>
+                <button type="submit" class="btn">Crea pratica</button>
+              </div>
+            </form>
+          </section>
         </div>
-        <div class="form-field" style="grid-column: 1 / -1;">
-          <button type="submit" class="btn">Crea pratica</button>
-          <div id="status" class="status">Inserisci i dati e conferma.</div>
-        </div>
-      </form>
+      </div>
     </main>
   </div>
 </body>
