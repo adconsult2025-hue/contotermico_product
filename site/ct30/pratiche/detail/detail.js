@@ -21,8 +21,8 @@ async function loadPractice() {
     return;
   }
 
-  const session = await window.termoGetSession?.();
-  if (!session?.user) {
+  const user = await window.getSessionUser?.();
+  if (!user) {
     window.location.href = '/login/';
     return;
   }

@@ -1,34 +1,32 @@
 (function () {
   const LOGIN_PATH = '/login/';
-  const HOME_AFTER_LOGIN = '/dashboard/';
 
   function isLoginPage() {
     const p = window.location.pathname || '/';
-    return p === '/login/' || p === '/login';
+    return p === '/login/' || p === '/login' || p.startsWith('/login/');
   }
 
-  function wait(ms) {
-    return new Promise((resolve) => setTimeout(resolve, ms));
-  }
-
-  async function getSessionWithRetry() {
-    if (!window.termoGetSession) return null;
-    let session = null;
-    for (let i = 0; i < 3; i += 1) {
-      session = await window.termoGetSession();
-      if (session?.user) break;
-      await wait(500);
+  async function getSessionUserId() {
+    if (!window.__supabase) return null;
+    try {
+      const { data, error } = await window.__supabase.auth.getSession();
+      if (error) return null;
+      return data?.session?.user?.id || null;
+    } catch (error) {
+      return null;
     }
-    return session;
   }
 
   async function guard() {
-    if (isLoginPage()) return;
-    const session = await getSessionWithRetry();
-    if (!session?.user) {
+    if (isLoginPage() || (window.location.pathname || '') === '/') return;
+    if (!window.__supabase) {
+      console.warn('[auth-guard] Supabase client missing.');
+      return;
+    }
+    const uid = await getSessionUserId();
+    if (!uid) {
       console.debug('[auth-guard] redirecting to /login/ from', window.location.pathname || '/');
       window.location.href = LOGIN_PATH;
-      return;
     }
   }
 

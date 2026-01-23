@@ -4,6 +4,15 @@ const practicesBody = document.getElementById('table-pratiche-body');
 const practicesEmpty = document.getElementById('table-pratiche-empty');
 const newPracticeButton = document.getElementById('btn-new-pratica');
 
+function renderPracticesError(message) {
+  if (!practicesBody) return;
+  practicesBody.innerHTML = `
+    <tr>
+      <td colspan="4" class="error-text">Errore: ${message}</td>
+    </tr>
+  `;
+}
+
 async function loadUser() {
   const user = await window.getSessionUser?.();
   if (who) {
@@ -22,12 +31,16 @@ function formatDate(value) {
 }
 
 async function loadPractices() {
-  if (!practicesBody || !window.__supabase) return;
+  if (!practicesBody) return;
+  if (!window.__supabase) {
+    renderPracticesError('Supabase non disponibile. Verifica /config.js e il client.');
+    return;
+  }
   try {
     const user = await window.getSessionUser?.();
     const isAdmin = await window.isSuperadmin?.();
     if (!user) {
-      throw new Error('Sessione non disponibile.');
+      throw new Error('Sessione non disponibile (utente non autenticato).');
     }
 
     let query = window.__supabase
