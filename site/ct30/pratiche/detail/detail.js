@@ -87,7 +87,7 @@ function renderTabs() {
     <button class="tab active" data-tab="soggetto">Soggetto</button>
     <button class="tab" data-tab="unita">Unità</button>
     <button class="tab" data-tab="interventi">Interventi</button>
-    <button class="tab" data-tab="filiera">Filiera</button>
+    <button class="tab" data-tab="checklist">Checklist</button>
   `;
   tabs.querySelectorAll('.tab').forEach((b) => {
     b.addEventListener('click', () => {
@@ -648,6 +648,63 @@ function renderInterventions(paneEl, catalogRows, selectedRows, practiceId, econ
   });
 }
 
+async function loadChecklistItems(practiceId) {
+  const { data, error } = await window.__supabase
+    .from('ct_checklist_items')
+    .select('*')
+    .eq('practice_id', practiceId)
+    .order('created_at', { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
+function renderChecklist(paneEl, items, practiceId, uid) {
+  if (!paneEl) return;
+  paneEl.innerHTML = `
+    <div class="panel ct-section">
+      <div class="ct-section__head">
+        <h2 class="ct-section__title">Checklist documentale</h2>
+        <button class="btn secondary" id="btnAddChecklist" style="width:auto;">Aggiungi voce</button>
+      </div>
+      <div id="checklistList"></div>
+    </div>
+  `;
+
+  const listEl = paneEl.querySelector('#checklistList');
+  if (!items.length) {
+    listEl.innerHTML = '<div class="muted small" style="margin-top:10px;">Nessuna voce presente.</div>';
+  } else {
+    listEl.innerHTML = items.map((item) => `
+      <div class="row" style="padding:8px 0; border-bottom:1px solid rgba(255,255,255,.08);">
+        <div style="flex-grow:1;">
+          <b>${esc(item.label)}</b> (<code>${esc(item.code)}</code>)
+          <div class="muted small">Stato: ${esc(item.status)}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  paneEl.querySelector('#btnAddChecklist').addEventListener('click', async () => {
+    const code = prompt('Codice (es. DELIBERA):', '');
+    const label = prompt('Etichetta:', '');
+    if (!code || !label) return;
+    const { error } = await window.__supabase
+      .from('ct_checklist_items')
+      .insert({
+        practice_id: practiceId,
+        owner_user_id: uid,
+        code: code.toUpperCase().trim(),
+        label: label.trim()
+      });
+    if (error) {
+      alert('Errore aggiunta checklist: ' + error.message);
+      return;
+    }
+    const itemsUpdated = await loadChecklistItems(practiceId);
+    renderChecklist(paneEl, itemsUpdated, practiceId, uid);
+  });
+}
+
 async function loadPartners(practiceId) {
   const partnersRes = await window.__supabase
     .from('ct_practice_partners')
@@ -895,7 +952,7 @@ async function main() {
   const paneS = $('#pane-soggetto');
   const paneU = $('#pane-unita');
   const paneI = $('#pane-interventi');
-  const paneF = $('#pane-filiera');
+  const paneF = $('#pane-checklist');
 
   const subject = await ensureSubject(practice, uid);
   renderSubjectForm(subject);
@@ -912,8 +969,8 @@ async function main() {
   ]);
   renderInterventions(paneI, catalog, selected, practice.id, economicsState, incentive);
 
-  const partnersData = await loadPartners(practice.id);
-  renderPartners(paneF, partnersData.partners, partnersData.assignments, selected, practice.id, uid);
+  const checklistItems = await loadChecklistItems(practice.id);
+  renderChecklist(paneF, checklistItems, practice.id, uid);
 
   setStatus('Pratica caricata.');
 }
