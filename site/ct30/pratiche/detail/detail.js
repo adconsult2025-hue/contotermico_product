@@ -401,8 +401,10 @@ function buildInterventionRows(catalog, selected, economics) {
 }
 
 async function upsertPracticeIntervention(practiceId, interventionCode, note) {
+    const uid = await getUid();
   const payload = {
     practice_id: practiceId,
+    owner_user_id: uid,
     intervention_code: interventionCode,
     note: note || null
   };
@@ -413,6 +415,7 @@ async function upsertPracticeIntervention(practiceId, interventionCode, note) {
     .single();
   if (preferred.error) throw preferred.error;
   return preferred.data;
+
 }
 
 async function deletePracticeIntervention(practiceId, interventionCode) {
