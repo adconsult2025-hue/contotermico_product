@@ -2,6 +2,7 @@
   "name": "contotermico-product",
   "private": true,
   "dependencies": {
-    "@supabase/supabase-js": "^2.49.1"
+    "@supabase/supabase-js": "^2.49.1",
+    "pg": "^8.14.1"
   }
 }
