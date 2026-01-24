@@ -1,5 +1,16 @@
-import { getClient } from './_db.js';
+import { createRequire } from 'module';
 import { getCtTypeCandidates, listAcceptedCtTypes } from './ct-type-utils.js';
+
+const require = createRequire(import.meta.url);
+const { getAdminClient, requireUser, corsHeaders } = require('./_supabase');
+
+function buildResponse(statusCode, body) {
+  return {
+    statusCode,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json; charset=utf-8' },
+    body: JSON.stringify(body),
+  };
+}
 
 /*
  * Netlify function to retrieve Conto Termico checklist items and their completion status.
@@ -25,8 +36,15 @@ import { getCtTypeCandidates, listAcceptedCtTypes } from './ct-type-utils.js';
  *   }
  */
 export const handler = async (event) => {
-  const client = await getClient();
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers: corsHeaders, body: '' };
+  }
+  if (event.httpMethod !== 'GET') {
+    return buildResponse(405, { ok: false, error: 'Method Not Allowed' });
+  }
   try {
+    const { user } = await requireUser(event);
+    const supabase = getAdminClient();
     const params = event.queryStringParameters || {};
     const practiceId = params.practice_id || null;
     const explicitCtType = params.ct_type ?? params.ctType ?? null;
@@ -49,16 +67,19 @@ export const handler = async (event) => {
 
     // If practice_id is provided, fetch ct_type and current_state from the database
     if (practiceId) {
-      const { rows } = await client.query(
-        `SELECT id, ct_type, current_state
-           FROM public.ct_practices
-          WHERE id = $1`,
-        [practiceId],
-      );
-      if (!rows.length) {
+      const { data: practiceRow, error: practiceError } = await supabase
+        .from('ct_practices')
+        .select('id, ct_type, current_state')
+        .eq('id', practiceId)
+        .eq('owner_user_id', user.id)
+        .maybeSingle();
+      if (practiceError) {
+        throw new Error(practiceError.message);
+      }
+      if (!practiceRow) {
         return { statusCode: 404, body: JSON.stringify({ ok: false, error: 'Practice not found' }) };
       }
-      practice = rows[0];
+      practice = practiceRow;
       ctType = practice.ct_type;
       if (typeof practice.current_state === 'number') {
         currentState = practice.current_state;
@@ -84,21 +105,17 @@ export const handler = async (event) => {
 
     // Helper to fetch checklist items for a given type
     const fetchChecklist = async (type) => {
-      const { rows } = await client.query(
-        `SELECT
-           ct_type,
-           state_id,
-           item_key,
-           label,
-           description,
-           is_required,
-           sort_order
-         FROM public.ct_checklist_items
-         WHERE ct_type = $1
-         ORDER BY state_id, sort_order NULLS FIRST, label`,
-        [type],
-      );
-      return rows;
+      const { data, error } = await supabase
+        .from('ct_checklist_items')
+        .select('ct_type,state_id,item_key,label,description,is_required,sort_order')
+        .eq('ct_type', type)
+        .order('state_id', { ascending: true })
+        .order('sort_order', { ascending: true, nullsFirst: true })
+        .order('label', { ascending: true });
+      if (error) {
+        throw new Error(error.message);
+      }
+      return data || [];
     };
 
     let checklistCtType = resolved;
@@ -145,40 +162,34 @@ export const handler = async (event) => {
     // Fetch completion status if practiceId provided
     let completion = [];
     if (practiceId) {
-      const params2 = [practiceId];
-      let where = 'practice_id = $1';
+      let query = supabase
+        .from('ct_practice_checklist_items')
+        .select('item_key,state_id,is_done')
+        .eq('practice_id', practiceId);
       if (currentState !== null && currentState !== undefined) {
-        params2.push(currentState);
-        where += ' AND state_id = $2';
+        query = query.eq('state_id', currentState);
       }
-      const { rows: completionRows } = await client.query(
-        `SELECT item_key, state_id, is_done
-           FROM public.ct_practice_checklist_items
-          WHERE ${where}`,
-        params2,
-      );
+      const { data: completionRows, error: completionError } = await query;
+      if (completionError) {
+        throw new Error(completionError.message);
+      }
       completion = completionRows || [];
     }
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        ok: true,
-        practice,
-        resolved_ct_type: resolved,
-        allowed_ct_types: listAcceptedCtTypes(),
-        used_fallback: usedFallback,
-        fallback_from: fallbackFrom,
-        fallback_to: fallbackTo,
-        checklistByState,
-        items,
-        completion,
-      }),
-    };
+    return buildResponse(200, {
+      ok: true,
+      practice,
+      resolved_ct_type: resolved,
+      allowed_ct_types: listAcceptedCtTypes(),
+      used_fallback: usedFallback,
+      fallback_from: fallbackFrom,
+      fallback_to: fallbackTo,
+      checklistByState,
+      items,
+      completion,
+    });
   } catch (err) {
     console.error('ct-checklist-get error', err);
-    return { statusCode: 500, body: JSON.stringify({ ok: false, error: err.message || 'Unexpected error' }) };
-  } finally {
-    if (client && client.release) client.release();
+    return buildResponse(err.statusCode || 500, { ok: false, error: err.message || 'Unexpected error' });
   }
 };

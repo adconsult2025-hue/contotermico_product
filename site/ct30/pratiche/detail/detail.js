@@ -21,6 +21,12 @@ async function getUid() {
   return data?.session?.user?.id || null;
 }
 
+async function getAccessToken() {
+  const { data, error } = await window.__supabase.auth.getSession();
+  if (error) return null;
+  return data?.session?.access_token || null;
+}
+
 function setStatus(msg, isErr = false) {
   const el = $('#status');
   if (!el) return;
@@ -653,7 +659,10 @@ async function loadChecklistWorkflow(practiceId, stateId = null) {
   if (stateId !== null && stateId !== undefined) {
     params.set('state', String(stateId));
   }
-  const res = await fetch(`/.netlify/functions/ct-checklist-get?${params.toString()}`);
+  const token = await getAccessToken();
+  const res = await fetch(`/.netlify/functions/ct-checklist-get?${params.toString()}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined
+  });
   const json = await res.json().catch(() => ({}));
   if (!res.ok || json.ok === false) {
     throw new Error(json?.error || `HTTP ${res.status}`);
@@ -662,11 +671,12 @@ async function loadChecklistWorkflow(practiceId, stateId = null) {
 }
 
 async function updateChecklistItems(practiceId, stateId, items, uid) {
+  const token = await getAccessToken();
   const res = await fetch('/.netlify/functions/ct-practice-checklist-update', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      'X-User-Id': uid
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
     },
     body: JSON.stringify({
       practice_id: practiceId,
