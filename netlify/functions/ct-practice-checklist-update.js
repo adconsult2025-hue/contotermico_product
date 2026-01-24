@@ -1,11 +1,4 @@
-const { getClient } = require('./_db');
-const { getCurrentUser } = require('./_auth');
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Requested-With',
-  'Access-Control-Allow-Methods': 'GET, POST, OPTIONS'
-};
+const { getAdminClient, requireUser, corsHeaders } = require('./_supabase');
 
 function buildResponse(statusCode, body) {
   return { statusCode, headers: corsHeaders, body: JSON.stringify(body) };
@@ -29,29 +22,28 @@ exports.handler = async function(event) {
     return buildResponse(400, { ok: false, error: 'Missing or invalid parameters' });
   }
   // Authenticate user
-  const user = await getCurrentUser(event.headers);
-  if (!user) {
-    return buildResponse(401, { ok: false, error: 'Unauthorized' });
-  }
-  const client = await getClient();
+  const { user } = await requireUser(event);
+  const supabase = getAdminClient();
   try {
-    const now = new Date();
-    for (const item of items) {
-      const { item_key, is_done } = item;
-      await client.query(
-        `INSERT INTO ct_practice_checklist_items (practice_id, state_id, item_key, is_done, done_at)
-         VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (practice_id, state_id, item_key) DO UPDATE
-           SET is_done = EXCLUDED.is_done,
-               done_at = EXCLUDED.done_at,
-               updated_at = now()`,
-        [practice_id, state_id, item_key, is_done, is_done ? now : null]
-      );
+    const now = new Date().toISOString();
+    const payload = items.map((item) => ({
+      practice_id,
+      state_id,
+      item_key: item.item_key,
+      is_done: Boolean(item.is_done),
+      done_at: item.is_done ? now : null,
+      updated_at: now,
+    }));
+
+    const { error } = await supabase
+      .from('ct_practice_checklist_items')
+      .upsert(payload, { onConflict: 'practice_id,state_id,item_key' });
+
+    if (error) {
+      throw new Error(error.message);
     }
     return buildResponse(200, { ok: true });
   } catch (err) {
-    return buildResponse(500, { ok: false, error: err.message || 'Internal error' });
-  } finally {
-    if (client) await client.release();
+    return buildResponse(err.statusCode || 500, { ok: false, error: err.message || 'Internal error' });
   }
 };
