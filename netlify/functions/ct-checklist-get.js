@@ -1,195 +1,113 @@
-import { createRequire } from 'module';
-import { getCtTypeCandidates, listAcceptedCtTypes } from './ct-type-utils.js';
+const { createClient } = require('@supabase/supabase-js');
 
-const require = createRequire(import.meta.url);
-const { getAdminClient, requireUser, corsHeaders } = require('./_supabase');
+const corsHeaders = {
+  'Content-Type': 'application/json',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Requested-With',
+  'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+};
 
-function buildResponse(statusCode, body) {
-  return {
-    statusCode,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json; charset=utf-8' },
-    body: JSON.stringify(body),
-  };
+function json(statusCode, body) {
+  return { statusCode, headers: corsHeaders, body: JSON.stringify(body) };
 }
 
-/*
- * Netlify function to retrieve Conto Termico checklist items and their completion status.
- *
- * Query parameters:
- *   - practice_id: (optional) UUID of the practice. If provided, the function will look up
- *     the practice to determine its ct_type and current_state and return completion info.
- *   - ct_type: (optional) explicit ct_type to use when no practice_id is given.
- *   - state: (optional) explicit state_id to filter completion rows when a practice is provided.
- *
- * Response:
- *   {
- *     ok: true,
- *     practice: {...} (when practice_id provided),
- *     resolved_ct_type: string,
- *     allowed_ct_types: [...],
- *     used_fallback: boolean,
- *     fallback_from: original type,
- *     fallback_to: fallback type,
- *     checklistByState: { [state_id]: [ { ct_type, state_id, item_key, label, description, required, sort_order } ] },
- *     items: [ ... ] checklist items for current_state (backwards compatibility),
- *     completion: [ { item_key, state_id, is_done } ]
- *   }
- */
-export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 200, headers: corsHeaders, body: '' };
+function getAdminSupabase() {
+  const url = process.env.TERMO_SUPABASE_URL;
+  const key = process.env.TERMO_SUPABASE_SERVICE_ROLE;
+  if (!url || !key) {
+    throw new Error('Missing TERMO_SUPABASE_URL or TERMO_SUPABASE_SERVICE_ROLE env');
   }
-  if (event.httpMethod !== 'GET') {
-    return buildResponse(405, { ok: false, error: 'Method Not Allowed' });
-  }
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+
+function normalizeCtType(raw) {
+  const v = String(raw || '').trim().toLowerCase();
+  const map = {
+    pa: 'pa',
+    'pubblica amministrazione': 'pa',
+    condominio: 'condominio',
+    privato: 'privato_residenziale',
+    'privato_residenziale': 'privato_residenziale',
+    'privato non residenziale': 'privato_non_residenziale',
+    'privato_non_residenziale': 'privato_non_residenziale',
+    ets: 'ets',
+    esco: 'esco',
+  };
+  return map[v] || v || null;
+}
+
+exports.handler = async (event) => {
+  if (event.httpMethod === 'OPTIONS') return json(200, { ok: true });
+
+  const diag = (event.queryStringParameters && event.queryStringParameters.diag) ? true : false;
+
   try {
-    const { user } = await requireUser(event);
-    const supabase = getAdminClient();
-    const params = event.queryStringParameters || {};
-    const practiceId = params.practice_id || null;
-    const explicitCtType = params.ct_type ?? params.ctType ?? null;
-    const explicitState = params.state
-      ? parseInt(params.state, 10)
-      : params.state_id
-        ? parseInt(params.state_id, 10)
-        : null;
+    const supabase = getAdminSupabase();
 
-    if (!practiceId && !explicitCtType) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ ok: false, error: 'Missing practice_id or ct_type' }),
-      };
-    }
+    const practiceId = event.queryStringParameters && event.queryStringParameters.practice_id;
+    if (!practiceId) return json(400, { ok: false, error: 'practice_id mancante' });
 
-    let practice = null;
-    let ctType = explicitCtType;
-    let currentState = explicitState;
+    // 1) Leggo pratica per ct_type + state_id
+    const { data: practice, error: pErr } = await supabase
+      .from('ct_practices')
+      .select('id, ct_type, state_id')
+      .eq('id', practiceId)
+      .maybeSingle();
 
-    // If practice_id is provided, fetch ct_type and current_state from the database
-    if (practiceId) {
-      const { data: practiceRow, error: practiceError } = await supabase
-        .from('ct_practices')
-        .select('id, ct_type, current_state')
-        .eq('id', practiceId)
-        .eq('owner_user_id', user.id)
-        .maybeSingle();
-      if (practiceError) {
-        throw new Error(practiceError.message);
-      }
-      if (!practiceRow) {
-        return { statusCode: 404, body: JSON.stringify({ ok: false, error: 'Practice not found' }) };
-      }
-      practice = practiceRow;
-      ctType = practice.ct_type;
-      if (typeof practice.current_state === 'number') {
-        currentState = practice.current_state;
-      }
-    }
+    if (pErr) throw pErr;
+    if (!practice) return json(404, { ok: false, error: 'Pratica non trovata' });
 
-    // Ensure ctType is resolved
-    if (!ctType) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ ok: false, error: 'Unable to determine ct_type', allowed_ct_types: listAcceptedCtTypes() }),
-      };
-    }
+    const ctType = normalizeCtType(practice.ct_type) || 'condominio';
+    const currentStateId = practice.state_id ?? null;
 
-    // Resolve ct_type and get fallback candidates
-    const { resolved, candidates } = getCtTypeCandidates(ctType);
-    if (!resolved) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ ok: false, error: 'Unrecognized ct_type', allowed_ct_types: listAcceptedCtTypes() }),
-      };
-    }
+    // 2) Carico voci checklist (catalogo)
+    const { data: items, error: iErr } = await supabase
+      .from('ct_checklist_items')
+      .select('ct_type,state_id,item_key,label,description,is_required,sort_order')
+      .eq('ct_type', ctType)
+      .order('state_id', { ascending: true })
+      .order('sort_order', { ascending: true })
+      .order('item_key', { ascending: true });
 
-    // Helper to fetch checklist items for a given type
-    const fetchChecklist = async (type) => {
-      const { data, error } = await supabase
-        .from('ct_checklist_items')
-        .select('ct_type,state_id,item_key,label,description,is_required,sort_order')
-        .eq('ct_type', type)
-        .order('state_id', { ascending: true })
-        .order('sort_order', { ascending: true, nullsFirst: true })
-        .order('label', { ascending: true });
-      if (error) {
-        throw new Error(error.message);
-      }
-      return data || [];
-    };
+    if (iErr) throw iErr;
 
-    let checklistCtType = resolved;
-    let itemsRows = await fetchChecklist(checklistCtType);
-    let usedFallback = false;
-    let fallbackFrom = null;
-    let fallbackTo = null;
-    // Fallback: if no checklist exists for the resolved type, try the next candidate
-    if (!itemsRows.length && candidates.length > 1) {
-      const fallbackType = candidates[1];
-      const fallbackRows = await fetchChecklist(fallbackType);
-      if (fallbackRows.length) {
-        itemsRows = fallbackRows;
-        checklistCtType = fallbackType;
-        usedFallback = true;
-        fallbackFrom = resolved;
-        fallbackTo = fallbackType;
-      }
-    }
+    // 3) Carico completamenti
+    const { data: doneRows, error: dErr } = await supabase
+      .from('ct_practice_checklist_items')
+      .select('state_id,item_key,is_done,done_at,updated_at')
+      .eq('practice_id', practiceId);
 
-    // Group checklist items by state
-    const checklistByState = {};
-    for (const row of itemsRows) {
-      const sid = row.state_id;
-      if (!checklistByState[sid]) checklistByState[sid] = [];
-      checklistByState[sid].push({
-        ct_type: row.ct_type,
-        state_id: row.state_id,
-        item_key: row.item_key,
-        label: row.label,
-        description: row.description,
-        is_required: row.is_required,
-        required: row.is_required,
-        sort_order: row.sort_order,
+    if (dErr) throw dErr;
+
+    const doneMap = new Map();
+    for (const r of (doneRows || [])) doneMap.set(`${r.state_id}:${r.item_key}`, r);
+
+    // 4) Raggruppo per stato, applico is_done
+    const itemsByState = {};
+    for (const it of (items || [])) {
+      const key = String(it.state_id);
+      if (!itemsByState[key]) itemsByState[key] = [];
+      const done = doneMap.get(`${it.state_id}:${it.item_key}`);
+      itemsByState[key].push({
+        ...it,
+        is_done: !!(done && done.is_done),
+        done_at: done ? done.done_at : null,
       });
     }
 
-    // Maintain backwards compatibility: items array for currentState
-    let items = [];
-    if (currentState !== null && checklistByState[currentState]) {
-      items = checklistByState[currentState];
-    }
-
-    // Fetch completion status if practiceId provided
-    let completion = [];
-    if (practiceId) {
-      let query = supabase
-        .from('ct_practice_checklist_items')
-        .select('item_key,state_id,is_done')
-        .eq('practice_id', practiceId);
-      if (currentState !== null && currentState !== undefined) {
-        query = query.eq('state_id', currentState);
-      }
-      const { data: completionRows, error: completionError } = await query;
-      if (completionError) {
-        throw new Error(completionError.message);
-      }
-      completion = completionRows || [];
-    }
-
-    return buildResponse(200, {
+    return json(200, {
       ok: true,
-      practice,
-      resolved_ct_type: resolved,
-      allowed_ct_types: listAcceptedCtTypes(),
-      used_fallback: usedFallback,
-      fallback_from: fallbackFrom,
-      fallback_to: fallbackTo,
-      checklistByState,
-      items,
-      completion,
+      practice_id: practiceId,
+      ct_type: ctType,
+      current_state_id: currentStateId,
+      itemsByState,
     });
-  } catch (err) {
-    console.error('ct-checklist-get error', err);
-    return buildResponse(err.statusCode || 500, { ok: false, error: err.message || 'Unexpected error' });
+  } catch (e) {
+    return json(500, {
+      ok: false,
+      error: 'ct-checklist-get failed',
+      message: String(e && e.message ? e.message : e),
+      ...(diag ? { stack: String(e && e.stack ? e.stack : '') } : {}),
+    });
   }
 };

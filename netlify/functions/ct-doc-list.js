@@ -1,66 +1,52 @@
-const { getAdminClient, requireUser, corsHeaders } = require('./_supabase');
-const { normalizeCtType } = require('./ct-type-utils');
+const { createClient } = require('@supabase/supabase-js');
 
-function buildResponse(statusCode, body) {
+const corsHeaders = {
+  'Content-Type': 'application/json',
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type,Authorization,X-Requested-With',
+  'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+};
+
+function json(statusCode, body) {
   return { statusCode, headers: corsHeaders, body: JSON.stringify(body) };
 }
 
-exports.handler = async function(event) {
-  if (event.httpMethod === 'OPTIONS') {
-    return { statusCode: 204, headers: corsHeaders };
-  }
-  if (event.httpMethod !== 'GET') {
-    return buildResponse(405, { ok: false, error: 'Method Not Allowed' });
-  }
-  const params = event.queryStringParameters || {};
-  const practiceId = params.practice_id;
-  const stateId = params.state_id ? parseInt(params.state_id, 10) : null;
-  if (!practiceId || !stateId) {
-    return buildResponse(400, { ok: false, error: 'Missing practice_id or state_id' });
-  }
-  // Authenticate user (optional: we might allow public read for attachments)
-  const { user } = await requireUser(event);
-  const supabase = getAdminClient();
+function getAdminSupabase() {
+  const url = process.env.TERMO_SUPABASE_URL;
+  const key = process.env.TERMO_SUPABASE_SERVICE_ROLE;
+  if (!url || !key) throw new Error('Missing TERMO_SUPABASE_URL or TERMO_SUPABASE_SERVICE_ROLE env');
+  return createClient(url, key, { auth: { persistSession: false } });
+}
+
+exports.handler = async (event) => {
+  if (event.httpMethod === 'OPTIONS') return json(200, { ok: true });
+  const diag = (event.queryStringParameters && event.queryStringParameters.diag) ? true : false;
+
   try {
-    // Determine ct_type from practice
-    const { data: practice, error: practiceError } = await supabase
-      .from('ct_practices')
-      .select('ct_type')
-      .eq('id', practiceId)
-      .eq('owner_user_id', user.id)
-      .maybeSingle();
-    if (practiceError) {
-      throw new Error(practiceError.message);
-    }
-    if (!practice) {
-      return buildResponse(404, { ok: false, error: 'Practice not found' });
-    }
-    const ctType = normalizeCtType(practice.ct_type || '');
-    // Fetch checklist items for ct_type and state
-    const { data: checklistItems, error: itemsError } = await supabase
-      .from('ct_checklist_items')
-      .select('item_key,label,description,is_required')
-      .eq('ct_type', ctType)
-      .eq('state_id', stateId)
-      .order('sort_order', { ascending: true, nullsLast: true })
-      .order('item_key', { ascending: true });
-    if (itemsError) {
-      throw new Error(itemsError.message);
-    }
-    // Fetch documents for the practice and state
-    const { data: documents, error: documentsError } = await supabase
+    const supabase = getAdminSupabase();
+    const practiceId = event.queryStringParameters && event.queryStringParameters.practice_id;
+    const stateId = event.queryStringParameters && event.queryStringParameters.state_id;
+
+    if (!practiceId) return json(400, { ok: false, error: 'practice_id mancante' });
+
+    let q = supabase
       .from('ct_documents')
-      .select(
-        'id,checklist_item_key,original_filename,mime_type,file_size,drive_file_id,review_status,uploaded_by,signed_detected,signature_type,uploaded_at,signed_at,reviewed_at'
-      )
+      .select('id,practice_id,ct_type,state_id,checklist_item_key,original_filename,mime_type,file_size,drive_file_id,created_at,signed_required,signed_detected,review_status,reviewed_at')
       .eq('practice_id', practiceId)
-      .eq('state_id', stateId)
-      .order('created_at', { ascending: true });
-    if (documentsError) {
-      throw new Error(documentsError.message);
-    }
-    return buildResponse(200, { ok: true, checklist_items: checklistItems || [], documents: documents || [] });
-  } catch (err) {
-    return buildResponse(err.statusCode || 500, { ok: false, error: err.message || 'Internal error' });
+      .order('created_at', { ascending: false });
+
+    if (stateId) q = q.eq('state_id', Number(stateId));
+
+    const { data, error } = await q;
+    if (error) throw error;
+
+    return json(200, { ok: true, practice_id: practiceId, docs: data || [] });
+  } catch (e) {
+    return json(500, {
+      ok: false,
+      error: 'ct-doc-list failed',
+      message: String(e && e.message ? e.message : e),
+      ...(diag ? { stack: String(e && e.stack ? e.stack : '') } : {}),
+    });
   }
 };
