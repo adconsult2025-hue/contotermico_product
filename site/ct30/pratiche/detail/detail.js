@@ -648,60 +648,191 @@ function renderInterventions(paneEl, catalogRows, selectedRows, practiceId, econ
   });
 }
 
-async function loadChecklistItems(practiceId) {
-  const { data, error } = await window.__supabase
-    .from('ct_checklist_items')
-    .select('*')
-    .eq('practice_id', practiceId)
-    .order('created_at', { ascending: true });
-  if (error) throw error;
-  return data || [];
+async function loadChecklistWorkflow(practiceId, stateId = null) {
+  const params = new URLSearchParams({ practice_id: practiceId });
+  if (stateId !== null && stateId !== undefined) {
+    params.set('state', String(stateId));
+  }
+  const res = await fetch(`/.netlify/functions/ct-checklist-get?${params.toString()}`);
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.ok === false) {
+    throw new Error(json?.error || `HTTP ${res.status}`);
+  }
+  return json;
 }
 
-function renderChecklist(paneEl, items, practiceId, uid) {
+async function updateChecklistItems(practiceId, stateId, items, uid) {
+  const res = await fetch('/.netlify/functions/ct-practice-checklist-update', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-User-Id': uid
+    },
+    body: JSON.stringify({
+      practice_id: practiceId,
+      state_id: stateId,
+      items
+    })
+  });
+  const json = await res.json().catch(() => ({}));
+  if (!res.ok || json.ok === false) {
+    throw new Error(json?.error || `HTTP ${res.status}`);
+  }
+  return json;
+}
+
+function buildChecklistStateIds(checklistByState) {
+  return Object.keys(checklistByState || {})
+    .map((key) => Number(key))
+    .filter((value) => Number.isFinite(value))
+    .sort((a, b) => a - b);
+}
+
+function buildCompletionMap(completion) {
+  const map = new Map();
+  (completion || []).forEach((row) => {
+    map.set(row.item_key, Boolean(row.is_done));
+  });
+  return map;
+}
+
+function renderChecklist(paneEl, workflow, practice, uid) {
   if (!paneEl) return;
+  const checklistByState = workflow?.checklistByState || {};
+  const stateIds = buildChecklistStateIds(checklistByState);
+  const fallbackNote = workflow?.used_fallback
+    ? `Checklist fallback da ${workflow?.fallback_from} a ${workflow?.fallback_to}.`
+    : '';
+
+  const initialState =
+    typeof workflow?.practice?.current_state === 'number'
+      ? workflow.practice.current_state
+      : typeof practice?.current_state === 'number'
+        ? practice.current_state
+        : stateIds[0] ?? null;
+
   paneEl.innerHTML = `
     <div class="panel ct-section">
       <div class="ct-section__head">
-        <h2 class="ct-section__title">Checklist documentale</h2>
-        <button class="btn secondary" id="btnAddChecklist" style="width:auto;">Aggiungi voce</button>
+        <div>
+          <h2 class="ct-section__title">Checklist documentale</h2>
+          <div class="ct-section__sub">Workflow per fase con tracking di completamento documenti.</div>
+        </div>
+        <div class="muted small" id="checklistMeta"></div>
       </div>
-      <div id="checklistList"></div>
+      <div class="row" style="gap:12px; align-items:center; margin-top:10px;">
+        <label class="muted small" for="checklistStateSelect">Fase</label>
+        <select id="checklistStateSelect" style="max-width:160px;"></select>
+        <div class="muted small" id="checklistInfo">${esc(fallbackNote)}</div>
+      </div>
+      <div id="checklistStatus" class="muted small" style="margin-top:8px;"></div>
+      <div id="checklistError" class="error-text small" style="margin-top:8px; display:none;"></div>
+      <div id="checklistList" style="margin-top:12px;"></div>
     </div>
   `;
 
+  const stateSelect = paneEl.querySelector('#checklistStateSelect');
   const listEl = paneEl.querySelector('#checklistList');
-  if (!items.length) {
-    listEl.innerHTML = '<div class="muted small" style="margin-top:10px;">Nessuna voce presente.</div>';
-  } else {
-    listEl.innerHTML = items.map((item) => `
-      <div class="row" style="padding:8px 0; border-bottom:1px solid rgba(255,255,255,.08);">
-        <div style="flex-grow:1;">
-          <b>${esc(item.label)}</b> (<code>${esc(item.code)}</code>)
-          <div class="muted small">Stato: ${esc(item.status)}</div>
-        </div>
-      </div>
-    `).join('');
+  const metaEl = paneEl.querySelector('#checklistMeta');
+  const errEl = paneEl.querySelector('#checklistError');
+  const statusEl = paneEl.querySelector('#checklistStatus');
+
+  const stateCache = new Map();
+  stateCache.set(initialState, {
+    items: workflow?.items || [],
+    completion: workflow?.completion || []
+  });
+
+  stateSelect.innerHTML = stateIds.map((id) => `
+    <option value="${id}" ${id === initialState ? 'selected' : ''}>Fase ${id}</option>
+  `).join('');
+
+  async function ensureStateData(stateId) {
+    if (stateCache.has(stateId)) return stateCache.get(stateId);
+    const fresh = await loadChecklistWorkflow(practice.id, stateId);
+    const data = {
+      items: fresh?.items || [],
+      completion: fresh?.completion || []
+    };
+    stateCache.set(stateId, data);
+    return data;
   }
 
-  paneEl.querySelector('#btnAddChecklist').addEventListener('click', async () => {
-    const code = prompt('Codice (es. DELIBERA):', '');
-    const label = prompt('Etichetta:', '');
-    if (!code || !label) return;
-    const { error } = await window.__supabase
-      .from('ct_checklist_items')
-      .insert({
-        practice_id: practiceId,
-        owner_user_id: uid,
-        code: code.toUpperCase().trim(),
-        label: label.trim()
-      });
-    if (error) {
-      alert('Errore aggiunta checklist: ' + error.message);
-      return;
+  function renderState(stateId, data) {
+    const items = data.items || checklistByState[stateId] || [];
+    const completionMap = buildCompletionMap(data.completion);
+    const doneCount = items.filter((item) => completionMap.get(item.item_key)).length;
+    const totalCount = items.length;
+    if (metaEl) {
+      metaEl.textContent = totalCount
+        ? `${doneCount} completati su ${totalCount}`
+        : 'Nessun elemento disponibile.';
     }
-    const itemsUpdated = await loadChecklistItems(practiceId);
-    renderChecklist(paneEl, itemsUpdated, practiceId, uid);
+    listEl.innerHTML = items.length
+      ? items.map((item) => {
+        const isDone = completionMap.get(item.item_key) || false;
+        return `
+          <div class="row" style="gap:12px; padding:10px 0; border-bottom:1px solid rgba(255,255,255,.08);">
+            <label style="display:flex; align-items:center; gap:10px; flex:1;">
+              <input type="checkbox" data-role="checklist-toggle" data-key="${esc(item.item_key)}" ${isDone ? 'checked' : ''} />
+              <span><strong>${esc(item.label)}</strong></span>
+            </label>
+            <span class="muted small">${item.required ? 'Obbligatorio' : 'Facoltativo'}</span>
+          </div>
+          ${item.description ? `<div class="muted small" style="margin:-6px 0 10px 34px;">${esc(item.description)}</div>` : ''}
+        `;
+      }).join('')
+      : '<div class="muted small">Nessun elemento disponibile per questa fase.</div>';
+
+    listEl.querySelectorAll('input[data-role="checklist-toggle"]').forEach((input) => {
+      input.addEventListener('change', async (ev) => {
+        errEl.style.display = 'none';
+        errEl.textContent = '';
+        const target = ev.currentTarget;
+        const itemKey = target.dataset.key;
+        const isDone = target.checked;
+        target.disabled = true;
+        statusEl.textContent = 'Aggiornamento checklist…';
+        try {
+          await updateChecklistItems(practice.id, stateId, [{ item_key: itemKey, is_done: isDone }], uid);
+          const updatedCompletion = data.completion.filter((row) => row.item_key !== itemKey);
+          updatedCompletion.push({ item_key: itemKey, state_id: stateId, is_done: isDone });
+          const nextData = { ...data, completion: updatedCompletion };
+          stateCache.set(stateId, nextData);
+          renderState(stateId, nextData);
+          statusEl.textContent = 'Checklist aggiornata.';
+        } catch (error) {
+          target.checked = !isDone;
+          errEl.textContent = `Errore aggiornamento checklist: ${error.message}`;
+          errEl.style.display = '';
+          statusEl.textContent = '';
+        } finally {
+          target.disabled = false;
+        }
+      });
+    });
+  }
+
+  if (initialState === null) {
+    listEl.innerHTML = '<div class="muted small">Checklist non disponibile per questa pratica.</div>';
+  } else {
+    renderState(initialState, stateCache.get(initialState));
+  }
+
+  stateSelect.addEventListener('change', async (ev) => {
+    const stateId = Number(ev.target.value);
+    errEl.style.display = 'none';
+    errEl.textContent = '';
+    statusEl.textContent = 'Caricamento checklist…';
+    try {
+      const data = await ensureStateData(stateId);
+      renderState(stateId, data);
+      statusEl.textContent = '';
+    } catch (error) {
+      errEl.textContent = `Errore caricamento checklist: ${error.message}`;
+      errEl.style.display = '';
+      statusEl.textContent = '';
+    }
   });
 }
 
@@ -969,8 +1100,8 @@ async function main() {
   ]);
   renderInterventions(paneI, catalog, selected, practice.id, economicsState, incentive);
 
-  const checklistItems = await loadChecklistItems(practice.id);
-  renderChecklist(paneF, checklistItems, practice.id, uid);
+  const checklistWorkflow = await loadChecklistWorkflow(practice.id, practice.current_state);
+  renderChecklist(paneF, checklistWorkflow, practice, uid);
 
   setStatus('Pratica caricata.');
 }
