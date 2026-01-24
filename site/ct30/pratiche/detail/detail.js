@@ -87,6 +87,7 @@ function renderTabs() {
     <button class="tab active" data-tab="soggetto">Soggetto</button>
     <button class="tab" data-tab="unita">Unità</button>
     <button class="tab" data-tab="interventi">Interventi</button>
+    <button class="tab" data-tab="filiera">Filiera</button>
   `;
   tabs.querySelectorAll('.tab').forEach((b) => {
     b.addEventListener('click', () => {
@@ -647,6 +648,233 @@ function renderInterventions(paneEl, catalogRows, selectedRows, practiceId, econ
   });
 }
 
+async function loadPartners(practiceId) {
+  const partnersRes = await window.__supabase
+    .from('ct_practice_partners')
+    .select('*')
+    .eq('practice_id', practiceId)
+    .order('created_at', { ascending: true });
+  if (partnersRes.error) throw partnersRes.error;
+
+  const assignmentsRes = await window.__supabase
+    .from('ct_partner_intervention_assignments')
+    .select('*')
+    .eq('practice_id', practiceId);
+  if (assignmentsRes.error) throw assignmentsRes.error;
+
+  return {
+    partners: partnersRes.data || [],
+    assignments: assignmentsRes.data || []
+  };
+}
+
+async function upsertPartner(practiceId, uid, partnerInput) {
+  const payload = {
+    practice_id: practiceId,
+    owner_user_id: uid,
+    name: partnerInput.name,
+    role: partnerInput.role || null,
+    email: partnerInput.email || null,
+    phone: partnerInput.phone || null,
+    notes: partnerInput.notes || null
+  };
+  if (partnerInput.id) payload.id = partnerInput.id;
+
+  const { data, error } = await window.__supabase
+    .from('ct_practice_partners')
+    .upsert(payload)
+    .select('*')
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+async function assignPartnerToIntervention(practiceId, partnerId, interventionCode, assigned) {
+  if (!interventionCode) return;
+  if (assigned) {
+    const payload = {
+      practice_id: practiceId,
+      partner_id: partnerId,
+      intervention_code: interventionCode
+    };
+    const { error } = await window.__supabase
+      .from('ct_partner_intervention_assignments')
+      .upsert(payload, { onConflict: 'practice_id,partner_id,intervention_code' });
+    if (error) throw error;
+    return;
+  }
+  const { error } = await window.__supabase
+    .from('ct_partner_intervention_assignments')
+    .delete()
+    .eq('practice_id', practiceId)
+    .eq('partner_id', partnerId)
+    .eq('intervention_code', interventionCode);
+  if (error) throw error;
+}
+
+function renderPartners(paneEl, partners, assignments, interventions, practiceId, uid) {
+  if (!paneEl) return;
+  const assignmentMap = new Map();
+  assignments.forEach((row) => {
+    const code = row.intervention_code;
+    if (!code) return;
+    if (!assignmentMap.has(row.partner_id)) assignmentMap.set(row.partner_id, new Set());
+    assignmentMap.get(row.partner_id).add(code);
+  });
+
+  const interventionOptions = interventions.map((row) => ({
+    code: row.intervention_code,
+    label: row.description || row.intervention_code
+  }));
+
+  paneEl.innerHTML = `
+    <div class="panel ct-section">
+      <div class="ct-section__head">
+        <div>
+          <h2 class="ct-section__title">Filiera</h2>
+          <div class="ct-section__sub">Partner operativi e assegnazioni agli interventi selezionati.</div>
+        </div>
+        <button class="btn secondary" id="btnAddPartner" style="width:auto;">Aggiungi partner</button>
+      </div>
+      <div id="partnersError" class="error-text small" style="margin-top:10px; display:none;"></div>
+      <div id="partnersEmpty" class="muted small" style="margin-top:10px; display:none;">
+        Nessun partner presente. Aggiungi il primo partner per gestire la filiera.
+      </div>
+      <div id="partnersList" style="margin-top:12px;"></div>
+      <div id="partnerForm" style="display:none; margin-top:14px;">
+        <div class="ct-form ct-form--3">
+          <div class="ct-field">
+            <label for="partner_name">Nome / Ragione sociale</label>
+            <input id="partner_name" placeholder="Es. Impresa Rossi SRL" />
+          </div>
+          <div class="ct-field">
+            <label for="partner_role">Ruolo</label>
+            <input id="partner_role" placeholder="Es. Impresa esecutrice" />
+          </div>
+          <div class="ct-field">
+            <label for="partner_email">Email</label>
+            <input id="partner_email" type="email" placeholder="nome@azienda.it" />
+          </div>
+          <div class="ct-field">
+            <label for="partner_phone">Telefono</label>
+            <input id="partner_phone" placeholder="+39 ..." />
+          </div>
+          <div class="ct-field ct-span-2">
+            <label for="partner_notes">Note</label>
+            <textarea id="partner_notes" placeholder="Note operative o contrattuali"></textarea>
+          </div>
+        </div>
+        <div class="ct-actions-row">
+          <button class="btn primary" id="btnSavePartner" style="width:auto;">Salva partner</button>
+          <button class="btn secondary" id="btnCancelPartner" style="width:auto;">Annulla</button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  const errEl = paneEl.querySelector('#partnersError');
+  const emptyEl = paneEl.querySelector('#partnersEmpty');
+  const listEl = paneEl.querySelector('#partnersList');
+  const formEl = paneEl.querySelector('#partnerForm');
+  const addBtn = paneEl.querySelector('#btnAddPartner');
+  const saveBtn = paneEl.querySelector('#btnSavePartner');
+  const cancelBtn = paneEl.querySelector('#btnCancelPartner');
+
+  const clearError = () => {
+    errEl.style.display = 'none';
+    errEl.textContent = '';
+  };
+
+  if (!partners.length) {
+    emptyEl.style.display = '';
+    listEl.innerHTML = '';
+  } else {
+    emptyEl.style.display = 'none';
+    listEl.innerHTML = partners.map((p) => {
+      const assignedSet = assignmentMap.get(p.id) || new Set();
+      const interventionsHtml = interventionOptions.length
+        ? interventionOptions.map((opt) => `
+            <label class="ct-check" style="display:flex; gap:6px; align-items:center;">
+              <input type="checkbox" data-role="assign" data-partner="${esc(p.id)}" data-code="${esc(opt.code)}" ${assignedSet.has(opt.code) ? 'checked' : ''} />
+              <span>${esc(opt.code)} · ${esc(opt.label)}</span>
+            </label>
+          `).join('')
+        : '<div class="muted small">Seleziona almeno un intervento per abilitare le assegnazioni.</div>';
+      return `
+        <div class="panel" style="padding:12px; margin-bottom:10px;">
+          <div class="row" style="justify-content:space-between; align-items:flex-start; gap:10px;">
+            <div>
+              <div style="font-weight:600;">${esc(p.name || '')}</div>
+              <div class="muted small">${esc(p.role || 'Ruolo non specificato')}</div>
+            </div>
+          </div>
+          <div class="muted small" style="margin-top:6px;">
+            ${p.email ? `Email: ${esc(p.email)}` : 'Email: —'} · ${p.phone ? `Tel: ${esc(p.phone)}` : 'Tel: —'}
+          </div>
+          ${p.notes ? `<div class="muted small" style="margin-top:4px;">${esc(p.notes)}</div>` : ''}
+          <div style="margin-top:10px;">
+            <div class="muted small" style="margin-bottom:6px;">Assegnazioni interventi</div>
+            <div style="display:grid; gap:6px;">${interventionsHtml}</div>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  addBtn.addEventListener('click', () => {
+    formEl.style.display = '';
+    clearError();
+    paneEl.querySelector('#partner_name').focus();
+  });
+
+  cancelBtn.addEventListener('click', () => {
+    formEl.style.display = 'none';
+  });
+
+  saveBtn.addEventListener('click', async () => {
+    clearError();
+    const partnerInput = {
+      name: paneEl.querySelector('#partner_name').value.trim(),
+      role: paneEl.querySelector('#partner_role').value.trim(),
+      email: paneEl.querySelector('#partner_email').value.trim(),
+      phone: paneEl.querySelector('#partner_phone').value.trim(),
+      notes: paneEl.querySelector('#partner_notes').value.trim()
+    };
+    if (!partnerInput.name) {
+      errEl.textContent = 'Inserisci almeno il nome del partner.';
+      errEl.style.display = '';
+      return;
+    }
+    try {
+      await upsertPartner(practiceId, uid, partnerInput);
+      const next = await loadPartners(practiceId);
+      renderPartners(paneEl, next.partners, next.assignments, interventions, practiceId, uid);
+      formEl.style.display = 'none';
+    } catch (error) {
+      errEl.textContent = `Errore salvataggio partner: ${error.message}`;
+      errEl.style.display = '';
+    }
+  });
+
+  listEl.querySelectorAll('input[data-role="assign"]').forEach((input) => {
+    input.addEventListener('change', async (ev) => {
+      clearError();
+      const partnerId = ev.currentTarget.dataset.partner;
+      const code = ev.currentTarget.dataset.code;
+      const checked = ev.currentTarget.checked;
+      try {
+        await assignPartnerToIntervention(practiceId, partnerId, code, checked);
+        const next = await loadPartners(practiceId);
+        renderPartners(paneEl, next.partners, next.assignments, interventions, practiceId, uid);
+      } catch (error) {
+        errEl.textContent = `Errore assegnazione intervento: ${error.message}`;
+        errEl.style.display = '';
+        ev.currentTarget.checked = !checked;
+      }
+    });
+  });
+}
+
 async function main() {
   if (!window.__supabase) {
     setStatus('Supabase non disponibile.', true);
@@ -667,6 +895,7 @@ async function main() {
   const paneS = $('#pane-soggetto');
   const paneU = $('#pane-unita');
   const paneI = $('#pane-interventi');
+  const paneF = $('#pane-filiera');
 
   const subject = await ensureSubject(practice, uid);
   renderSubjectForm(subject);
@@ -682,6 +911,9 @@ async function main() {
     loadPracticeIncentive(practice.id)
   ]);
   renderInterventions(paneI, catalog, selected, practice.id, economicsState, incentive);
+
+  const partnersData = await loadPartners(practice.id);
+  renderPartners(paneF, partnersData.partners, partnersData.assignments, selected, practice.id, uid);
 
   setStatus('Pratica caricata.');
 }
