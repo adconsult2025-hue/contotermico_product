@@ -53,7 +53,7 @@ exports.handler = async (event) => {
     const currentStateId = practice.state_id ?? null;
 
     const { data: items, error: iErr } = await supabase
-      .from('ct_checklist_items')
+      .from('ct_checklist_catalog_items')
       .select('ct_type,state_id,item_key,label,description,is_required,sort_order')
       .eq('ct_type', ctType)
       .order('state_id', { ascending: true })
